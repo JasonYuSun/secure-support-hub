@@ -10,6 +10,8 @@ A production-style, secure support request management app built to demonstrate *
   - [Table of Contents](#table-of-contents)
   - [Why this project](#why-this-project)
   - [Key capabilities](#key-capabilities)
+    - [Project idea: Secure Support Hub](#project-idea-secure-support-hub)
+    - [Core user scenario](#core-user-scenario)
     - [Product features](#product-features)
     - [Engineering \& operations features](#engineering--operations-features)
   - [Architecture](#architecture)
@@ -33,7 +35,7 @@ A production-style, secure support request management app built to demonstrate *
   - [Deployment](#deployment)
     - [Docker (dev)](#docker-dev)
     - [Kubernetes (dev/prod)](#kubernetes-devprod)
-    - [Optional AWS](#optional-aws)
+    - [AWS](#aws)
   - [Observability \& operations](#observability--operations)
     - [Health checks](#health-checks)
     - [Logging](#logging)
@@ -63,6 +65,28 @@ It intentionally prioritizes **simplicity and extensibility** over novelty.
 ---
 
 ## Key capabilities
+
+### Project idea: Secure Support Hub
+A production-style web app that lets teams create, triage, and track support requests with:
+- a clean React (TypeScript) UI
+- Spring Boot backend services (REST APIs)
+- AuthN/AuthZ (JWT + RBAC)
+- strong observability (logs/metrics/traces)
+- CI/CD + automated tests
+- Kubernetes deployment (with OpenShift-friendly manifests)
+- “AI-assisted” features that are safe & practical (summaries, suggested tags, draft responses)
+
+### Core user scenario
+
+1. A user logs in (JWT).
+2. Creates a support request with title/description + attachments.
+3. “AI Assist” button:
+	• summarizes the issue
+	• suggests tags (e.g., billing, login, kubernetes)
+	• proposes a first response draft
+4. A triage engineer views the queue, filters by SLA priority, assigns owners.
+5. Status changes trigger events (audit log + notifications).
+6. Ops view shows request volume, latency, error rate, SLA breaches.
 
 ### Product features
 
@@ -95,15 +119,14 @@ At a high level:
 
 - **Web** (React + TypeScript) calls
 - **API** (Spring Boot) which persists to
-- **Postgres** and optionally uses
-- **Redis** (rate limiting / caching) and
+- **Postgres** and
 - **LLM provider** via a dedicated AI endpoint for assistive features.
 
 ### Components
 
 - `apps/web`: UI for request creation, triage queue, and detail views
 - `apps/api`: REST APIs, auth, validation, business rules, persistence
-- `infra/`: Docker Compose for local dev, Kubernetes manifests, optional Terraform
+- `infra/`: Docker Compose for local dev, Kubernetes manifests, Terraform
 
 ---
 
@@ -131,7 +154,7 @@ At a high level:
 - OpenTelemetry instrumentation (tracing)
 - Prometheus metrics endpoint
 - GitHub Actions CI/CD
-- Optional AWS: ECR/EKS/RDS/S3
+- AWS: ECR/EKS/RDS/S3
 
 ---
 
@@ -142,7 +165,6 @@ At a high level:
 - Docker + Docker Compose
 - Java 21 (or 17)
 - Node.js 20+
-- (Optional) Kubernetes: kind/minikube + kubectl
 
 ### Quick start (recommended)
 
@@ -153,14 +175,10 @@ At a high level:
     cp apps/web/.env.example apps/web/.env
     ```
 
-2. Start dependencies (and optionally the full stack):
+2. Start the full stack:
 
     ```bash
-    # Option A: start the full stack via compose
     docker compose -f infra/docker-compose/docker-compose.yml up --build
-
-    # Option B: start only dependencies (postgres, redis), run apps locally
-    docker compose -f infra/docker-compose/docker-compose.deps.yml up -d
     ```
 
 3. Run backend locally:
@@ -243,7 +261,7 @@ The canonical contract is published via OpenAPI:
 
 - Input validation on all writes
 - Centralized exception handling (no stack traces leaked)
-- Rate limiting (optional) on auth endpoints
+- Rate limiting on auth endpoints
 - Audit logging for sensitive state changes
 - Secrets are never committed; use env vars / Kubernetes Secrets
 
@@ -257,7 +275,7 @@ This project aims for practical, production-like coverage.
 
 - Unit tests: service/business rules, mappers, validators
 - Integration tests (Testcontainers): DB migrations, repositories, controllers
-- Contract tests (optional): validate API expectations across versions
+- Contract tests: validate API expectations across versions
 
 ```bash
 cd apps/api
@@ -266,7 +284,7 @@ cd apps/api
 
 ### Frontend
 
-- Component tests (optional)
+- Component tests
 - E2E tests with Playwright
 
 ```bash
@@ -281,7 +299,7 @@ npm run test:e2e
 GitHub Actions workflows (in `.github/workflows/`) typically include:
 
 - **Frontend:** install → lint → test → build
-- **Backend:** build → test → security scan (optional) → Docker build
+- **Backend:** build → test → security scan → Docker build
 - **Image publishing:** push to registry (e.g., GHCR/ECR) on main branch
 - **Deployment:** apply manifests / Helm (environment-dependent)
 
@@ -307,19 +325,16 @@ Kubernetes manifests live in:
 - `infra/k8s/base`: standard k8s resources
 - `infra/k8s/overlays/dev`: dev values (lower resources, local ingress)
 - `infra/k8s/overlays/prod`: production-like values
-- `infra/k8s/overlays/openshift`: OpenShift-specific objects/tweaks
 
 Typical commands (kustomize):
 
 ```bash
 kubectl apply -k infra/k8s/overlays/dev
-# or
-kubectl apply -k infra/k8s/overlays/openshift
 ```
 
-### Optional AWS
+### AWS
 
-Terraform (optional) provisions:
+Terraform provisions:
 
 - EKS cluster
 - ECR repositories
@@ -344,8 +359,8 @@ Terraform (optional) provisions:
 ### Metrics & tracing
 
 - Prometheus scraping endpoint
-- OpenTelemetry traces exported to a collector (optional)
-- Dashboards (optional) stored under `docs/observability/`
+- OpenTelemetry traces exported to a collector
+- Dashboards stored under `docs/observability/`
 
 ### Runbooks
 
@@ -393,11 +408,10 @@ secure-support-hub/
         dev/
         prod/
         openshift/
-    terraform/               # optional AWS provisioning
+    terraform/               # AWS provisioning
   docs/
     architecture/
       ADR-0001.md
-      threat-model.md
     runbooks/
       incident-response.md
       deployment.md
@@ -438,4 +452,4 @@ secure-support-hub/
 
 ## License
 
-This project is provided under the [MIT License](LICENSE) (or replace with your preferred license).
+This project is provided under the [MIT License](LICENSE).
