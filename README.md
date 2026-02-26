@@ -1,6 +1,6 @@
 # Secure Support Hub (Side Project)
 
-A production-style, secure support request management app built to demonstrate **end-to-end ownership** across **React (TypeScript)**, **Java / Spring Boot**, **REST APIs**, **CI/CD**, and **AWS + Kubernetes (OpenShift-friendly)** — with **AI-assisted development** transparently showcased via curated prompts in this repo.
+A production-style, secure support request management app built to demonstrate **end-to-end ownership** across **React (TypeScript)**, **Java / Spring Boot**, **REST APIs**, **CI/CD**, and **AWS + Kubernetes (OpenShift-friendly)**.
 
 ---
 
@@ -23,6 +23,7 @@ A production-style, secure support request management app built to demonstrate *
   - [Local development](#local-development)
     - [Prerequisites](#prerequisites)
     - [Quick start (recommended)](#quick-start-recommended)
+    - [Verification (one command)](#verification-one-command)
   - [API overview](#api-overview)
   - [Security model](#security-model)
     - [Authentication](#authentication)
@@ -41,7 +42,6 @@ A production-style, secure support request management app built to demonstrate *
     - [Logging](#logging)
     - [Metrics \& tracing](#metrics--tracing)
     - [Runbooks](#runbooks)
-  - [AI-assisted development (vibe coding)](#ai-assisted-development-vibe-coding)
   - [Project structure](#project-structure)
   - [Roadmap](#roadmap)
     - [MVP](#mvp)
@@ -195,6 +195,29 @@ At a high level:
     npm install
     npm run dev
     ```
+
+### Verification (one command)
+
+Run all non-GUI local checks end-to-end:
+
+- Start full stack with Docker Compose
+- Check backend health endpoint
+- Run backend tests (`./gradlew test`)
+- Run frontend clean install + production build (`npm ci && npm run build`)
+- Check Swagger and frontend URLs via `curl`
+
+```bash
+make verify
+```
+
+Alternative:
+
+```bash
+./scripts/verify.sh
+```
+
+By default, the script stops the Docker stack when finished.  
+Use `KEEP_STACK_UP=1 make verify` if you want containers to remain running.
 
 **Default local URLs:**
 
@@ -371,28 +394,6 @@ Operational documentation is stored in:
 
 ---
 
-## AI-assisted development (vibe coding)
-
-This repo explicitly documents how AI tools were used to accelerate development while maintaining quality.
-
-- Prompt history lives in: `prompts/`
-- Each prompt file includes:
-  - Goal and scope
-  - Constraints (security, performance, maintainability)
-  - Prompt text (what was asked)
-  - Output checklist (what must be produced)
-  - Verification steps (tests, reviews, manual checks)
-
-**Guardrails:**
-
-- AI suggestions are never auto-applied to production state
-- AI outputs are treated as drafts and must pass:
-  - Tests
-  - Code review checklist
-  - Security constraints (no secrets, no risky patterns)
-
----
-
 ## Project structure
 
 ```
@@ -417,7 +418,6 @@ secure-support-hub/
       deployment.md
     api/
       openapi.yaml
-  prompts/                   # AI-assisted dev prompts (vibe coding)
   .github/workflows/
   README.md
 ```
