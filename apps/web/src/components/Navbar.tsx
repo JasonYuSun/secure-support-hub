@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { Shield, LogOut, LayoutDashboard, PlusCircle, ListFilter } from 'lucide-react'
+import { Shield, LogOut, LayoutDashboard, PlusCircle, ListFilter, Users } from 'lucide-react'
 
 const Navbar: React.FC = () => {
     const { user, logout, hasRole } = useAuth()
@@ -32,6 +32,12 @@ const Navbar: React.FC = () => {
                         <NavLink to="/triage" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
                             <ListFilter size={15} style={{ display: 'inline', marginRight: 4 }} />
                             Triage
+                        </NavLink>
+                    )}
+                    {hasRole('ADMIN') && (
+                        <NavLink to="/admin/users" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
+                            <Users size={15} style={{ display: 'inline', marginRight: 4 }} />
+                            User Admin
                         </NavLink>
                     )}
                 </div>

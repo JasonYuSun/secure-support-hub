@@ -93,6 +93,9 @@ A production-style web app that lets teams create, triage, and track support req
 - **Authentication + Authorization**
   - JWT-based auth
   - Role-based access control (RBAC): `USER`, `TRIAGE`, `ADMIN`
+  - Admin user/role management APIs (`/api/v1/admin/users`, `/api/v1/admin/roles`)
+  - Admin UI for user/role updates at `/admin/users`
+  - Guardrails: admins cannot remove their own `ADMIN` role; concurrent updates return conflict (`409`)
 - **Support Requests**
   - Create, view, search, filter, paginate
   - Status workflow: `OPEN → IN_PROGRESS → RESOLVED → CLOSED`
@@ -248,6 +251,10 @@ The API follows consistent patterns:
 | ------- | -------------------------------- | ------------------------------ |
 | `POST`  | `/api/v1/auth/login`             | Authenticate and receive JWT   |
 | `GET`   | `/api/v1/me`                     | Current user profile + roles   |
+| `GET`   | `/api/v1/admin/users`            | List users (ADMIN only)        |
+| `GET`   | `/api/v1/admin/users/{id}`       | Get user details (ADMIN only)  |
+| `PATCH` | `/api/v1/admin/users/{id}/roles` | Replace user roles (ADMIN only)|
+| `GET`   | `/api/v1/admin/roles`            | List available roles (ADMIN only) |
 | `GET`   | `/api/v1/requests`               | List requests with filters     |
 | `POST`  | `/api/v1/requests`               | Create request                 |
 | `GET`   | `/api/v1/requests/{id}`          | Request details                |
@@ -278,7 +285,7 @@ The canonical contract is published via OpenAPI:
 | -------- | ------------------------------------------------------------- |
 | `USER`   | Create requests, view own requests, comment on own requests   |
 | `TRIAGE` | View and manage all requests, assign requests, change status  |
-| `ADMIN`  | User/role management (if enabled), system-level configuration |
+| `ADMIN`  | User/role management, system-level configuration              |
 
 ### Secure-by-default practices
 
