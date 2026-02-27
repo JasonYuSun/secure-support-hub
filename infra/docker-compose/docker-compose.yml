@@ -44,7 +44,7 @@ services:
       context: ../../apps/web
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: http://localhost:8080
+        VITE_API_URL: /api/v1
     container_name: securehub-web
     depends_on:
       api:

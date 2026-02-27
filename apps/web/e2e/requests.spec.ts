@@ -22,11 +22,14 @@ test.describe('Support Requests', () => {
         await page.getByLabel('Description').fill('This request was created by a Playwright E2E test.')
         await page.getByRole('button', { name: /submit/i }).click()
 
-        // Should redirect to dashboard
-        await expect(page).toHaveURL('/')
+        // Should redirect to the detail page
+        await expect(page).toHaveURL(/\/requests\/\d+/)
+
+        // To see it in the list, navigate back to the dashboard
+        await page.goto('/')
 
         // The new request should appear in the list
-        await expect(page.getByText(title)).toBeVisible()
+        await expect(page.getByText(title).first()).toBeVisible()
     })
 
     test('view a support request detail page', async ({ page }) => {
@@ -39,9 +42,8 @@ test.describe('Support Requests', () => {
         await page.getByLabel('Description').fill('Checking that the detail page shows correct data.')
         await page.getByRole('button', { name: /submit/i }).click()
 
-        // Click the request from the dashboard
-        await page.getByText(title).click()
-        await expect(page.url()).toMatch(/\/requests\/\d+/)
+        // We are automatically redirected to the detail page
+        await expect(page).toHaveURL(/\/requests\/\d+/)
 
         // Detail page content
         await expect(page.getByRole('heading', { name: title })).toBeVisible()
@@ -58,9 +60,6 @@ test.describe('Support Requests', () => {
         await page.getByLabel('Title').fill(title)
         await page.getByLabel('Description').fill('Request for comment E2E test.')
         await page.getByRole('button', { name: /submit/i }).click()
-
-        // Navigate to the detail
-        await page.getByText(title).click()
 
         // Add a comment
         const commentText = 'This is an E2E comment added by Playwright.'

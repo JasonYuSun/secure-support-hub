@@ -8,8 +8,8 @@ RUN npm install
 COPY . .
 
 # Vite bakes env vars at build time — pass via --build-arg or docker-compose args
-ARG VITE_API_BASE_URL=http://localhost:8080
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ARG VITE_API_URL=/api/v1
+ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
 

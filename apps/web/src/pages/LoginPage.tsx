@@ -56,7 +56,7 @@ const LoginPage: React.FC = () => {
                 <div className="card" style={{ padding: 32 }}>
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-                        {error && <div className="alert alert-error">{error}</div>}
+                        {error && <div className="alert alert-error" role="alert">{error}</div>}
 
                         <div className="form-group">
                             <label className="form-label" htmlFor="username">

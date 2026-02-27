@@ -131,6 +131,7 @@ const RequestDetailPage: React.FC = () => {
                     <form onSubmit={handleAddComment} style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {commentError && <div className="alert alert-error">{commentError}</div>}
                         <textarea
+                            id="comment-body"
                             className="form-textarea"
                             placeholder="Add a comment…"
                             value={commentBody}
@@ -139,7 +140,7 @@ const RequestDetailPage: React.FC = () => {
                             disabled={commentMutation.isPending}
                         />
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                            <button type="submit" className="btn btn-primary" disabled={commentMutation.isPending || !commentBody.trim()}>
+                            <button id="submit-comment-btn" type="submit" className="btn btn-primary" disabled={commentMutation.isPending || !commentBody.trim()}>
                                 {commentMutation.isPending
                                     ? <><span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Posting…</>
                                     : <><Send size={14} /> Post Comment</>}
