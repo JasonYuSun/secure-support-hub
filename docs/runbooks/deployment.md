@@ -2,16 +2,16 @@
 
 **Service**: Secure Support Hub  
 **Owner**: Engineering Team  
-**Last Updated**: 2026-02-26
+**Last Updated**: 2026-02-27
 
 ---
 
 ## Prerequisites
 
 - Docker ≥ 24 and Docker Compose plugin installed
-- kubectl configured (for Kubernetes deployments)
-- kustomize ≥ 5 (bundled with kubectl ≥ 1.27)
 - Access to the container registry (for prod)
+- `aws` CLI configured for `ap-southeast-2` (AWS cloud deployments)
+- kubectl + kustomize (optional, only for Kubernetes manifest path)
 
 ---
 
@@ -57,7 +57,23 @@ docker compose -f infra/docker-compose/docker-compose.yml logs -f api
 
 ---
 
-## 2. Kubernetes — Dev Overlay
+## 2. AWS ECS Fargate — Dev First (Primary Cloud Path)
+
+- Target region: `ap-southeast-2`
+- Rollout order: `dev` first, then `prod`
+- Canonical step-by-step checklist:
+  - `docs/aws-fargate-cicd-checklist.md`
+
+Use the checklist phases in order:
+
+1. AWS account bootstrap + SSO CLI profile
+2. Terraform bootstrap and infrastructure provisioning
+3. GitHub OIDC + CI/CD deployment pipeline
+4. Post-deploy verification and rollback drill
+
+---
+
+## 3. Kubernetes — Dev Overlay (Optional)
 
 ### Deploy
 
@@ -82,7 +98,7 @@ kubectl -n secure-support-hub port-forward svc/web 5173:80 &
 
 ---
 
-## 3. Kubernetes — Production Overlay
+## 4. Kubernetes — Production Overlay (Optional)
 
 ### Deploy
 
@@ -110,7 +126,24 @@ kubectl -n secure-support-hub logs deploy/api --tail=50
 
 ---
 
-## 4. Rollback Procedure
+## 5. Rollback Procedure
+
+### AWS ECS Fargate (Primary Cloud Path)
+
+```bash
+# 1) Identify previous stable task definition revision
+aws ecs describe-services \
+  --cluster <ecs-cluster-name> \
+  --services <ecs-api-service-name> \
+  --region ap-southeast-2
+
+# 2) Update service to the previous known-good task definition
+aws ecs update-service \
+  --cluster <ecs-cluster-name> \
+  --service <ecs-api-service-name> \
+  --task-definition <previous-task-def-arn> \
+  --region ap-southeast-2
+```
 
 ### Docker Compose
 
@@ -133,7 +166,7 @@ kubectl -n secure-support-hub rollout status deployment/api
 
 ---
 
-## 5. Database Migrations
+## 6. Database Migrations
 
 Flyway migrations run automatically on API startup. To run manually:
 
@@ -155,11 +188,11 @@ To view migration status:
 
 ---
 
-## 6. Secret Rotation (JWT_SECRET)
+## 7. Secret Rotation (JWT_SECRET)
 
 Rotating the JWT secret invalidates all active user sessions.
 
 1. Generate a new secret: `openssl rand -base64 64`
-2. Update `JWT_SECRET` in the deployment environment (k8s Secret or `.env`)
+2. Update `JWT_SECRET` in the deployment environment (AWS Secrets Manager, Kubernetes Secret, or `.env`)
 3. Restart the API pods/containers
 4. Inform users: all active sessions will be terminated; users must log in again

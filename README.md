@@ -1,6 +1,6 @@
 # Secure Support Hub (Side Project)
 
-A production-style, secure support request management app built to demonstrate **end-to-end ownership** across **React (TypeScript)**, **Java / Spring Boot**, **REST APIs**, **CI/CD**, and **AWS + Kubernetes (OpenShift-friendly)**.
+A production-style, secure support request management app built to demonstrate **end-to-end ownership** across **React (TypeScript)**, **Java / Spring Boot**, **REST APIs**, **CI/CD**, and **AWS (ECS Fargate) with optional Kubernetes portability**.
 
 ---
 
@@ -35,8 +35,9 @@ A production-style, secure support request management app built to demonstrate *
   - [CI/CD](#cicd)
   - [Deployment](#deployment)
     - [Docker (dev)](#docker-dev)
-    - [Kubernetes (dev/prod)](#kubernetes-devprod)
-    - [AWS](#aws)
+    - [AWS ECS Fargate (dev first)](#aws-ecs-fargate-dev-first)
+    - [Kubernetes (optional manifests)](#kubernetes-optional-manifests)
+    - [AWS services used](#aws-services-used)
   - [Observability \& operations](#observability--operations)
     - [Health checks](#health-checks)
     - [Logging](#logging)
@@ -58,7 +59,7 @@ This repo is designed to match a Senior Software Engineer role that values:
 - **End-to-end delivery**: from solution design → implementation → production readiness → support
 - **Maintainability**: clear boundaries, strong contracts, automated tests, sensible defaults
 - **Operational discipline**: metrics, logs, health checks, runbooks, and incident readiness
-- **Platform fit**: containerized services deployed on **Kubernetes**, compatible with **OpenShift**, and deployable to **AWS**
+- **Platform fit**: containerized services deployed on **AWS ECS Fargate** (MVP target), with Kubernetes manifests retained for portability
 
 It intentionally prioritizes **simplicity and extensibility** over novelty.
 
@@ -73,7 +74,7 @@ A production-style web app that lets teams create, triage, and track support req
 - AuthN/AuthZ (JWT + RBAC)
 - strong observability (logs/metrics/traces)
 - CI/CD + automated tests
-- Kubernetes deployment (with OpenShift-friendly manifests)
+- AWS deployment on ECS Fargate (dev first, `ap-southeast-2`)
 - “AI-assisted” features that are safe & practical (summaries, suggested tags, draft responses)
 
 ### Core user scenario
@@ -112,7 +113,7 @@ A production-style web app that lets teams create, triage, and track support req
 - Structured logging + request correlation IDs
 - Health/readiness endpoints + metrics
 - CI checks: lint, unit tests, integration tests, build/publish images
-- Kubernetes manifests with an OpenShift overlay
+- AWS-ready container deployment on ECS Fargate with environment-first rollout (`dev` before `prod`)
 
 ---
 
@@ -129,7 +130,7 @@ At a high level:
 
 - `apps/web`: UI for request creation, triage queue, and detail views
 - `apps/api`: REST APIs, auth, validation, business rules, persistence
-- `infra/`: Docker Compose for local dev, Kubernetes manifests, Terraform
+- `infra/`: Docker Compose for local dev, Terraform/AWS deployment assets, and optional Kubernetes manifests
 
 ---
 
@@ -153,11 +154,12 @@ At a high level:
 ### Infra & Ops
 
 - Docker + Docker Compose (local)
-- Kubernetes (base manifests + overlays)
+- AWS ECS Fargate (dev-first deployment target)
+- Kubernetes manifests (optional portability path)
 - OpenTelemetry instrumentation (tracing)
 - Prometheus metrics endpoint
 - GitHub Actions CI/CD
-- AWS: ECR/EKS/RDS/S3
+- AWS: ECR/ECS Fargate/RDS/ALB/CloudWatch/S3
 
 ---
 
@@ -293,7 +295,7 @@ The canonical contract is published via OpenAPI:
 - Centralized exception handling (no stack traces leaked)
 - Rate limiting on auth endpoints
 - Audit logging for sensitive state changes
-- Secrets are never committed; use env vars / Kubernetes Secrets
+- Secrets are never committed; use env vars / AWS Secrets Manager (or Kubernetes Secrets where applicable)
 
 ---
 
@@ -331,7 +333,7 @@ GitHub Actions workflows (in `.github/workflows/`) typically include:
 - **Frontend:** install → lint → test → build
 - **Backend:** build → test → security scan → Docker build
 - **Image publishing:** push to registry (e.g., GHCR/ECR) on main branch
-- **Deployment:** apply manifests / Helm (environment-dependent)
+- **Deployment:** build/push images and update ECS task definitions/services (dev first)
 
 **Recommended add-ons:**
 
@@ -348,7 +350,20 @@ GitHub Actions workflows (in `.github/workflows/`) typically include:
 - Fastest route for local demo and iteration
 - Use Compose files under `infra/docker-compose/`
 
-### Kubernetes (dev/prod)
+### AWS ECS Fargate (dev first)
+
+Current cloud deployment path:
+
+- Runtime: ECS Fargate
+- Region: `ap-southeast-2`
+- Environment rollout: `dev` first, then `prod`
+- Components: `web` (Nginx static hosting), `api` (Spring Boot), `rds` (PostgreSQL), `alb`, `ecr`
+
+Execution checklist:
+
+- `docs/aws-fargate-cicd-checklist.md`
+
+### Kubernetes (optional manifests)
 
 Kubernetes manifests live in:
 
@@ -362,15 +377,16 @@ Typical commands (kustomize):
 kubectl apply -k infra/k8s/overlays/dev
 ```
 
-### AWS
+### AWS services used
 
 Terraform provisions:
 
-- EKS cluster
+- ECS cluster and services (Fargate launch type)
+- Application Load Balancer (ALB)
 - ECR repositories
 - RDS Postgres
 - S3 for attachments (Phase 3)
-- IAM roles for service accounts (IRSA)
+- IAM roles and OIDC trust for CI/CD
 
 ---
 
@@ -423,6 +439,7 @@ secure-support-hub/
     runbooks/
       incident-response.md
       deployment.md
+    aws-fargate-cicd-checklist.md
     api/
       openapi.yaml
   .github/workflows/
@@ -439,7 +456,7 @@ secure-support-hub/
 - Support request CRUD + comments + workflow
 - OpenAPI docs
 - Unit + integration tests
-- Compose + Kubernetes deployment
+- Compose + AWS ECS Fargate deployment (`dev` first)
 
 ### Phase 2
 

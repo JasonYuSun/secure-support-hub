@@ -109,7 +109,18 @@
    # See deployment runbook for rollback steps
    ```
 
-5. **Scale up API replicas** (Kubernetes):
+5. **Scale up API service capacity**:
+
+   ECS Fargate (primary cloud path):
+   ```bash
+   aws ecs update-service \
+     --cluster <ecs-cluster-name> \
+     --service <ecs-api-service-name> \
+     --desired-count 3 \
+     --region ap-southeast-2
+   ```
+
+   Kubernetes (optional path):
    ```bash
    kubectl -n secure-support-hub scale deployment api --replicas=3
    ```
