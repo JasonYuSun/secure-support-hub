@@ -24,7 +24,3 @@ export const login = async (payload: LoginPayload): Promise<AuthResponse> => {
     return data
 }
 
-export const getMe = async (): Promise<AuthUser> => {
-    const { data } = await apiClient.get<AuthUser>('/me')
-    return data
-}
