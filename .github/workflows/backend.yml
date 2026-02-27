@@ -15,12 +15,6 @@ jobs:
     name: Test & Build
     runs-on: ubuntu-latest
 
-    services:
-      # Testcontainers manages its own Postgres container — no need for a service here.
-      # Docker socket is available on ubuntu-latest by default.
-      docker:
-        image: docker:dind
-        options: --privileged
 
     steps:
       - name: Checkout
@@ -40,8 +34,6 @@ jobs:
       - name: Run tests
         working-directory: apps/api
         run: ./gradlew test
-        env:
-          SPRING_PROFILES_ACTIVE: test
 
       - name: Build JAR
         working-directory: apps/api
