@@ -212,6 +212,12 @@ terraform apply tfplan
 
 - [ ] Save outputs (`alb_dns_name`, `ecr_repo_urls`, `rds_endpoint`, `ecs_cluster_name`).
 
+### 5.6 Initial Deployment (Manual)
+
+- [x] Push manual dummy/real images to ECR to allow ECS services to start successfully.
+- [x] Apply Terraform to create ECS services and ALB.
+- [x] Output ALB DNS name and verify it resolves.
+
 ---
 
 ## Phase 6: Application runtime configuration mapping
@@ -371,20 +377,20 @@ gitleaks detect --source . --no-git
 
 ## Phase 8: First deployment runbook (dev)
 
-- [ ] Merge code to `main` after checks pass.
-- [ ] Confirm deploy workflow starts.
-- [ ] Confirm ECR image push succeeded.
-- [ ] Confirm ECS new task revision is created.
-- [ ] Confirm ECS service reaches stable state.
-- [ ] Hit health endpoint:
+- [x] Merge code to `main` after checks pass.
+- [x] Confirm deploy workflow starts.
+- [x] Confirm ECR image push succeeded.
+- [x] Confirm ECS new task revision is created.
+- [x] Confirm ECS service reaches stable state.
+- [x] Hit health endpoint:
 
 ```bash
 curl -i http://<your-alb-dns-name>/actuator/health
 ```
 
-- [ ] Open UI and verify login.
-- [ ] Verify admin page visibility with admin account.
-- [ ] Verify one end-to-end business flow:
+- [x] Open UI and verify login.
+- [x] Verify admin page visibility with admin account.
+- [x] Verify one end-to-end business flow:
   - login
   - create request
   - triage update
@@ -463,14 +469,6 @@ curl -i http://<your-alb-dns-name>/actuator/health
 - [x] Invalidate active auth tokens/sessions if `JWT_SECRET` exposure is suspected.
 - [x] Review CloudTrail and CI logs to identify blast radius and access timeline.
 - [x] Open incident record and document root cause + prevention action.
-
----
-
-### 5.6 Initial Deployment (Manual)
-
-- [x] Push manual dummy/real images to ECR to allow ECS services to start successfully.
-- [x] Apply Terraform to create ECS services and ALB.
-- [x] Output ALB DNS name and verify it resolves.
 
 ---
 
