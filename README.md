@@ -132,6 +132,11 @@ At a high level:
 - `apps/api`: REST APIs, auth, validation, business rules, persistence
 - `infra/`: Docker Compose for local dev, Terraform/AWS deployment assets, and optional Kubernetes manifests
 
+Detailed runtime architecture documentation:
+
+- `docs/architecture/aws-fargate-runtime-architecture.md`
+- `docs/architecture/authentication-jwt-oidc-guide.md`
+
 ---
 
 ## Tech stack
@@ -330,10 +335,17 @@ npm run test:e2e
 
 GitHub Actions workflows (in `.github/workflows/`) typically include:
 
+- **Terraform (IaC):** `fmt/validate/plan` on infra PRs, controlled `apply` on `main` (OIDC, no static AWS keys)
 - **Frontend:** install → lint → test → build
 - **Backend:** build → test → security scan → Docker build
 - **Image publishing:** push to registry (e.g., GHCR/ECR) on main branch
 - **Deployment:** build/push images and update ECS task definitions/services (dev first)
+
+Sensitive data handling baseline:
+
+- Runtime secrets (DB/JWT/API keys) live in AWS Secrets Manager / SSM Parameter Store, not in GitHub workflow YAML
+- GitHub Environment Variables are non-sensitive metadata only
+- Pipeline logs/artifacts should publish sanitized outputs only (no plaintext secret values)
 
 **Recommended add-ons:**
 
@@ -362,6 +374,8 @@ Current cloud deployment path:
 Execution checklist:
 
 - `docs/aws-fargate-cicd-checklist.md`
+  - `Phase 6`: runtime configuration mapping (secret vs non-secret split)
+  - `Phase 7`: GitHub OIDC + app CD + Terraform pipeline (IaC)
 
 ### Kubernetes (optional manifests)
 
@@ -436,6 +450,7 @@ secure-support-hub/
   docs/
     architecture/
       ADR-0001.md
+      aws-fargate-runtime-architecture.md
     runbooks/
       incident-response.md
       deployment.md

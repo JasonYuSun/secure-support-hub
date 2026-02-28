@@ -1,0 +1,112 @@
+name: Deploy to API & Web ECS Fargate
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  # Using GitHub Environment variables is the standard way to map infrastructure outputs
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ECR_API_REPOSITORY: ${{ vars.ECR_API_REPOSITORY }}
+  ECR_WEB_REPOSITORY: ${{ vars.ECR_WEB_REPOSITORY }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+  ECS_SERVICE_API: ${{ vars.ECS_SERVICE_API }}
+  ECS_SERVICE_WEB: ${{ vars.ECS_SERVICE_WEB }}
+  ECS_TASK_FAMILY_API: ${{ vars.ECS_TASK_FAMILY_API }}
+  ECS_TASK_FAMILY_WEB: ${{ vars.ECS_TASK_FAMILY_WEB }}
+
+permissions:
+  id-token: write # Required for requesting the JWT for OIDC
+  contents: read
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    environment: dev # Connects to the dev environment protection and secrets
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Configure AWS OIDC Credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 2. Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 3. Build, tag, and push API image to Amazon ECR
+      - name: Build, tag, and push API image to Amazon ECR
+        id: build-api-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_API_REPOSITORY:$IMAGE_TAG -f apps/api/Dockerfile apps/api
+          docker push $ECR_REGISTRY/$ECR_API_REPOSITORY:$IMAGE_TAG
+          echo "api_image=$ECR_REGISTRY/$ECR_API_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # 4. Build, tag, and push Web image to Amazon ECR
+      - name: Build, tag, and push Web image to Amazon ECR
+        id: build-web-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_WEB_REPOSITORY:$IMAGE_TAG -f apps/web/Dockerfile apps/web \
+            --build-arg VITE_API_URL=/api/v1
+          docker push $ECR_REGISTRY/$ECR_WEB_REPOSITORY:$IMAGE_TAG
+          echo "web_image=$ECR_REGISTRY/$ECR_WEB_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # 5. Fetch current API Task Definition
+      - name: Download API task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_FAMILY_API }} --query taskDefinition > api-task-def.json
+
+      # 6. Fetch current Web Task Definition
+      - name: Download Web task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_FAMILY_WEB }} --query taskDefinition > web-task-def.json
+
+      # 7. Render API Task Definition with new image
+      - name: Render new API task definition
+        id: render-api-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: api-task-def.json
+          container-name: api
+          image: ${{ steps.build-api-image.outputs.api_image }}
+
+      # 8. Render Web Task Definition with new image
+      - name: Render new Web task definition
+        id: render-web-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: web-task-def.json
+          container-name: web
+          image: ${{ steps.build-web-image.outputs.web_image }}
+
+      # 9. Deploy API to Amazon ECS
+      - name: Deploy API to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-api-task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_API }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      # 10. Deploy Web to Amazon ECS
+      - name: Deploy Web to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-web-task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_WEB }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

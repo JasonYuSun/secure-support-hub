@@ -63,4 +63,11 @@ logging:
     console: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","requestId":"%X{requestId}","logger":"%logger{36}","message":"%msg"}%n'
   level:
     root: INFO
-    com.suncorp.securehub: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}

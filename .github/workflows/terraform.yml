@@ -1,0 +1,119 @@
+name: Terraform Infrastructure Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'infra/terraform/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'infra/terraform/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  TF_WORKING_DIR: 'infra/terraform/envs/dev'
+
+permissions:
+  id-token: write # Required for AWS OIDC
+  contents: read
+  pull-requests: write # Required for commenting on PRs
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    environment: dev
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Note: In a real-world scenario, you would use a separate, more privileged OIDC role for Terraform 
+          # rather than the app deployment role. For this MVP, we use the same role or a dedicated one if set.
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        run: terraform plan -no-color -out=tfplan > plan_output.txt
+
+      - name: Comment PR with sanitized plan summary
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const planOutput = fs.readFileSync('${{ env.TF_WORKING_DIR }}/plan_output.txt', 'utf8');
+            const summaryMatch = planOutput.match(/Plan: \d+ to add, \d+ to change, \d+ to destroy\./);
+            const summary = summaryMatch ? summaryMatch[0] : "No changes detected.";
+            const output = `#### Terraform Plan Summary 📖
+            \`${summary}\`
+            
+            *Note: The raw plan is hidden to prevent exposing sensitive runtime values in logs.*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  terraform-apply:
+    name: Terraform Apply
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    environment: dev
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # Concurrency ensures we don't run parallel applies creating state lock contention
+    concurrency: 
+      group: terraform-apply-${{ github.ref }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        # We re-run plan to ensure it's fresh right before apply
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply tfplan
