@@ -76,6 +76,7 @@ module "ecs" {
 module "oidc" {
   source                      = "../../modules/oidc"
   environment                 = var.environment
+  aws_region                  = var.aws_region
   github_user                 = var.github_user
   github_repo                 = var.github_repo
   ecs_cluster_arn             = "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:cluster/securehub-${var.environment}-cluster"

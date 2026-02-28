@@ -108,6 +108,43 @@ resource "aws_iam_policy" "github_actions_deploy" {
             "iam:PassedToService" : "ecs-tasks.amazonaws.com"
           }
         }
+      },
+      {
+        # Allow Terraform State Management (S3 & DynamoDB)
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = [
+          "arn:aws:s3:::secure-support-hub-tf-state-*",
+          "arn:aws:s3:::secure-support-hub-tf-state-*/*",
+          "arn:aws:dynamodb:${var.aws_region}:*:table/secure-support-hub-tf-locks"
+        ]
+      },
+      {
+        # MVP ONLY: Broad permissions to allow the single CI role to manage 
+        # all infrastructure components defined in Terraform rather than dealing 
+        # with bounded IAM boundaries (skipped dedicated TF role for MVP).
+        Effect = "Allow"
+        Action = [
+          "ec2:*",
+          "ecs:*",
+          "ecr:*",
+          "elasticloadbalancing:*",
+          "rds:*",
+          "logs:*",
+          "iam:*",
+          "secretsmanager:*",
+          "ssm:*",
+          "kms:*"
+        ]
+        Resource = "*"
       }
     ]
   })

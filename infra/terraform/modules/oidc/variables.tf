@@ -3,6 +3,11 @@ variable "environment" {
   description = "Environment name"
 }
 
+variable "aws_region" {
+  type        = string
+  description = "AWS Region where the infrastructure is deployed"
+}
+
 variable "github_user" {
   type        = string
   description = "GitHub organization or username"
