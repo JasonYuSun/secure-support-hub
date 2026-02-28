@@ -399,32 +399,22 @@ curl -i http://<your-alb-dns-name>/actuator/health
 
 ## Phase 9: Post-deploy dev operations controls
 
-- [ ] Enable CloudWatch alarms:
-  - ALB 5xx
-  - API task CPU high
-  - API task memory high
-  - ECS service running task count below desired
-  - RDS CPU/storage/connections
-- [ ] Set log retention policies (do not keep forever by default).
-- [ ] Add dashboard with:
-  - request rate
-  - error rate
-  - p95 latency
-- [ ] Add security-focused observability:
-  - alert on abnormal Secrets Manager access patterns (CloudTrail/EventBridge)
-  - alert on sudden auth failure spikes and unusual request bursts
-- [ ] Define rollback SOP and test once in dev.
-- [ ] Set cost explorer monthly review reminder.
+- ~~[ ] Enable CloudWatch alarms~~ (Skipped for MVP)
+- [x] Set log retention policies (do not keep forever by default).
+- ~~[ ] Add centralized monitoring dashboards~~ (Skipped for MVP)
+- ~~[ ] Add security-focused observability~~ (Skipped for MVP)
+- ~~[ ] Define rollback SOP and test once in dev.~~ (Skipped for MVP)
+- ~~[ ] Set cost explorer monthly review reminder.~~ (Skipped for MVP)
 
 ---
 
-## Phase 10: Rollback checklist
+## Phase 10: Rollback SOP (Reference Only)
 
-- [ ] Identify last known good image tag.
-- [ ] Update ECS service to previous task definition revision.
-- [ ] Wait for service stability.
-- [ ] Re-run smoke tests.
-- [ ] Announce incident status and recovery notes.
+- Identify last known good image tag.
+- Update ECS service to previous task definition revision.
+- Wait for service stability.
+- Re-run smoke tests.
+- Announce incident status and recovery notes.
 
 ---
 
@@ -432,35 +422,35 @@ curl -i http://<your-alb-dns-name>/actuator/health
 
 ### 1) ECS tasks keep restarting
 
-- [ ] Check container logs in CloudWatch.
-- [ ] Verify env vars and secrets exist.
-- [ ] Verify DB connectivity and SG rules.
-- [ ] Verify Flyway migration is not failing at startup.
+- Check container logs in CloudWatch.
+- Verify env vars and secrets exist.
+- Verify DB connectivity and SG rules.
+- Verify Flyway migration is not failing at startup.
 
 ### 2) UI loads but API calls fail (401/403/CORS)
 
-- [ ] Check `CORS_ALLOWED_ORIGINS` includes exact frontend URL.
-- [ ] Check frontend API env var (`VITE_API_URL`) matches deployed API path.
-- [ ] Re-login to refresh stale role data in local storage.
+- Check `CORS_ALLOWED_ORIGINS` includes exact frontend URL.
+- Check frontend API env var (`VITE_API_URL`) matches deployed API path.
+- Re-login to refresh stale role data in local storage.
 
 ### 3) ALB health check failing
 
-- [ ] Verify target group health check path and port.
-- [ ] Confirm app listens on expected container port.
-- [ ] Confirm SG allows ALB -> ECS traffic.
+- Verify target group health check path and port.
+- Confirm app listens on expected container port.
+- Confirm SG allows ALB -> ECS traffic.
 
 ### 4) GitHub Actions cannot assume AWS role
 
-- [ ] Check IAM OIDC provider exists.
-- [ ] Check role trust policy `sub` matches repo and branch.
-- [ ] Ensure workflow has `id-token: write`.
+- Check IAM OIDC provider exists.
+- Check role trust policy `sub` matches repo and branch/environment.
+- Ensure workflow has `id-token: write`.
 
 ### 5) Cannot connect API to RDS
 
-- [ ] Confirm RDS in private subnets.
-- [ ] Confirm ECS tasks networking matches your chosen profile (public IP or NAT-backed private).
-- [ ] Confirm RDS SG allows inbound from ECS SG only.
-- [ ] Confirm secret values and JDBC URL are correct.
+- Confirm RDS in private subnets.
+- Confirm ECS tasks networking matches your chosen profile (public IP or NAT-backed private).
+- Confirm RDS SG allows inbound from ECS SG only.
+- Confirm secret values and JDBC URL are correct.
 
 ### 6) Suspected secret leak
 
@@ -474,14 +464,14 @@ curl -i http://<your-alb-dns-name>/actuator/health
 
 ## Definition of Done (MVP on AWS)
 
-- [ ] All infra is Terraform-managed and reproducible.
-- [ ] CI runs on PR and blocks merge on failure.
-- [ ] CD deploys `main` to AWS dev automatically.
-- [ ] App is reachable from public internet via ALB DNS (HTTP in current dev scope).
-- [ ] API + Web health checks are green.
-- [ ] Database backups are enabled.
-- [ ] Logs and alarms are configured.
-- [ ] Rollback procedure is tested at least once.
+- [x] All infra is Terraform-managed and reproducible.
+- [x] CI runs on PR and blocks merge on failure.
+- [x] CD deploys `main` to AWS dev automatically.
+- [x] App is reachable from public internet via ALB DNS (HTTP in current dev scope).
+- [x] API + Web health checks are green.
+- [x] Database backups are enabled.
+- [x] CloudWatch Logs are configured (Alarms skipped for MVP).
+- ~~[ ] Rollback procedure is tested at least once.~~ (Skipped for MVP)
 
 ---
 
