@@ -41,6 +41,8 @@ app:
     bucket-name: ${AWS_S3_ATTACHMENT_BUCKET_NAME:securehub-attachments-local}
     aws-region: ${AWS_REGION:ap-southeast-2}
     aws-s3-endpoint: ${AWS_S3_ENDPOINT:}
+    aws-access-key-id: ${ATTACHMENTS_AWS_ACCESS_KEY_ID:}
+    aws-secret-access-key: ${ATTACHMENTS_AWS_SECRET_ACCESS_KEY:}
     max-file-size-bytes: ${ATTACHMENTS_MAX_FILE_SIZE_BYTES:10485760}
     request-max-count: ${ATTACHMENTS_MAX_COUNT_PER_REQUEST:10}
     comment-max-count: ${ATTACHMENTS_MAX_COUNT_PER_COMMENT:5}

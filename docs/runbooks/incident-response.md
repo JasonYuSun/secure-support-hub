@@ -142,3 +142,27 @@
    docker compose -f infra/docker-compose/docker-compose.yml exec api date
    ```
    Compare to host: `date`. If off by > 30s, sync NTP on the host.
+
+---
+
+## 5. Attachment / S3 Upload Failures
+
+### Symptoms
+- Frontend shows "Upload failed due to network/CORS issue" or similar error when attaching files.
+- Users report that files are "stuck" returning 403.
+- Database has accumulating `PENDING` attachments.
+
+### Steps
+
+1. **S3 CORS Failure**:
+   - Verify the S3 bucket CORS configuration matches the `CORS_ALLOWED_ORIGINS` in the frontend.
+   - Run `aws s3api get-bucket-cors --bucket securehub-attachments-local` (replace with actual bucket name) to check.
+
+2. **Pre-signed URL Expired (403)**:
+   - Check if the user is uploading very large files or has slow internet, as URLs expire after 5 minutes.
+   - Instruct the user to retry to generate a fresh URL.
+
+3. **Pending Orphan Files**:
+   - If uploads to S3 succeed but the backend `confirm` endpoint is never called, the DB leaves rows in `PENDING` state.
+   - An automated Spring `@Scheduled` job sweeps these after 1 hour (`ATTACHMENTS_PENDING_UPLOAD_MAX_AGE`).
+   - If the cron job is failing, check the API logs for `cleanupOrphanedPendingAttachments` errors.

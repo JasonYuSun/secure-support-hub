@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-and-build:
-    name: Lint & Build
+  lint-build-and-e2e:
+    name: Lint, Build & E2E
     runs-on: ubuntu-latest
 
     steps:
@@ -47,6 +47,21 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: /api/v1
+
+      - name: Install Playwright browser
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E (mocked API/S3)
+        working-directory: apps/web
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-playwright-report
+          path: apps/web/playwright-report/
 
       - name: Build Docker image (dry run — no push on PR)
         working-directory: apps/web

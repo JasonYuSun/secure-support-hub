@@ -93,7 +93,7 @@ A production-style web app that lets teams create, triage, and track support req
   - Create, view, search, filter, paginate
   - Status workflow: `OPEN → IN_PROGRESS → RESOLVED → CLOSED`
   - Comments and assignment
-- **AI Assist (opt-in, human-in-the-loop)**
+- **AI Assist (Planned for Future Phase)**
   - Summarize issue description
   - Suggest tags
   - Draft a response (never auto-sent, always reviewable)
@@ -195,6 +195,24 @@ Detailed runtime architecture documentation:
     npm run dev
     ```
 
+### Optional: LocalStack for attachment development
+
+To test S3 attachment flows locally without AWS, start Docker Compose with the LocalStack profile.
+
+```bash
+AWS_REGION=ap-southeast-2 \
+AWS_S3_ATTACHMENT_BUCKET_NAME=securehub-attachments-local \
+AWS_S3_ENDPOINT=http://localstack:4566 \
+ATTACHMENTS_AWS_ACCESS_KEY_ID=test \
+ATTACHMENTS_AWS_SECRET_ACCESS_KEY=test \
+docker compose -f infra/docker-compose/docker-compose.yml --profile localstack up --build
+```
+
+Notes:
+- LocalStack S3 is optional and disabled by default.
+- The compose stack auto-runs `infra/docker-compose/localstack/init/01-create-attachments-bucket.sh` to create the local attachment bucket.
+- For API-only local runs (`./gradlew bootRun`), set the same env vars in your shell or `apps/api/.env`.
+
 ### Verification (one command)
 
 Run all non-GUI local checks end-to-end:
@@ -202,7 +220,8 @@ Run all non-GUI local checks end-to-end:
 - Start full stack with Docker Compose
 - Check backend health endpoint
 - Run backend tests (`./gradlew test`)
-- Run frontend clean install + production build (`npm ci && npm run build`)
+- Run frontend clean install + lint + production build (`npm ci && npm run lint && npm run build`)
+- Run frontend Playwright E2E tests (`npm run test:e2e`, mocked API/S3 flows)
 - Check Swagger and frontend URLs via `curl`
 
 ```bash
@@ -217,6 +236,7 @@ Alternative:
 
 By default, the script stops the Docker stack when finished.  
 Use `KEEP_STACK_UP=1 make verify` if you want containers to remain running.
+Use `RUN_E2E=0 make verify` if you need a faster run without Playwright tests.
 
 **Default local URLs:**
 
@@ -256,9 +276,6 @@ The API follows consistent patterns:
 | `GET`   | `/api/v1/requests/{id}`          | Request details                   |
 | `POST`  | `/api/v1/requests/{id}/comments` | Add comment                       |
 | `PATCH` | `/api/v1/requests/{id}`          | Status/assignee updates (RBAC)    |
-| `POST`  | `/api/v1/ai/summarize`           | AI summary (opt-in)               |
-| `POST`  | `/api/v1/ai/suggest-tags`        | Tag suggestions (opt-in)          |
-| `POST`  | `/api/v1/ai/draft-response`      | Response draft (opt-in)           |
 
 The canonical contract is published via OpenAPI:
 

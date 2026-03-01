@@ -1,4 +1,24 @@
 services:
+  localstack:
+    image: localstack/localstack:3.4
+    container_name: securehub-localstack
+    profiles: ["localstack"]
+    environment:
+      SERVICES: s3
+      AWS_DEFAULT_REGION: ${AWS_REGION:-ap-southeast-2}
+      ATTACHMENTS_BUCKET_NAME: ${AWS_S3_ATTACHMENT_BUCKET_NAME:-securehub-attachments-local}
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./localstack/init:/etc/localstack/init/ready.d
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: [ "CMD-SHELL", "awslocal s3 ls >/dev/null 2>&1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   postgres:
     image: postgres:16-alpine
     container_name: securehub-postgres
@@ -31,6 +51,11 @@ services:
       JWT_SECRET: localDevSecretKeyThatIsAtLeast256BitsLongForHS256
       JWT_EXPIRATION_MS: 86400000
       CORS_ALLOWED_ORIGINS: http://localhost:5173
+      AWS_REGION: ${AWS_REGION:-ap-southeast-2}
+      AWS_S3_ATTACHMENT_BUCKET_NAME: ${AWS_S3_ATTACHMENT_BUCKET_NAME:-securehub-attachments-local}
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT:-}
+      ATTACHMENTS_AWS_ACCESS_KEY_ID: ${ATTACHMENTS_AWS_ACCESS_KEY_ID:-}
+      ATTACHMENTS_AWS_SECRET_ACCESS_KEY: ${ATTACHMENTS_AWS_SECRET_ACCESS_KEY:-}
     ports:
       - "8080:8080"
     healthcheck:
@@ -54,3 +79,4 @@ services:
 
 volumes:
   postgres-data:
+  localstack-data:

@@ -26,6 +26,8 @@ public class AttachmentProperties {
     private String awsRegion = "ap-southeast-2";
 
     private String awsS3Endpoint;
+    private String awsAccessKeyId;
+    private String awsSecretAccessKey;
 
     @Min(1)
     private long maxFileSizeBytes = 10 * 1024 * 1024L;

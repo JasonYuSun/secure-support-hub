@@ -154,6 +154,11 @@
   - delete S3 objects (best-effort with retry or cleanup job)
 - [x] Add cleanup strategy for orphaned `PENDING` uploads (scheduled task/TTL).
 
+### 2.5 API test baseline (relocated from Phase 4)
+
+- [x] Integration tests for attachment endpoint orchestration are in place (upload-url/confirm/list/download/delete for request + comment scopes).
+- [x] Integration tests for request/comment delete permissions and attachment cleanup orchestration are in place.
+
 ---
 
 ## Phase 3: Frontend UX and Flows (React)
@@ -179,31 +184,32 @@
 
 ## Phase 4: Local Development, Testing, and CI
 
-- [ ] Add optional LocalStack service in `infra/docker-compose/docker-compose.yml`.
-- [ ] Add LocalStack init script to create test bucket automatically.
-- [ ] Add local env docs/examples for S3 local endpoint and dummy credentials.
-- [ ] Backend tests:
-  - unit tests for validation/RBAC
-  - integration tests for upload-url/confirm/download-url/delete
-  - use Testcontainers + LocalStack module for S3 integration tests
-- [ ] Frontend tests:
+- [x] Add optional LocalStack service in `infra/docker-compose/docker-compose.yml`.
+- [x] Add LocalStack init script to create test bucket automatically.
+- [x] Add local env docs/examples for S3 local endpoint and dummy credentials.
+- [x] Backend tests:
+  - unit tests for attachment validation/RBAC
+  - use Testcontainers + LocalStack module for real S3 integration tests
+  - note: endpoint orchestration integration tests were completed earlier and relocated to Phase 2.5
+- [x] Frontend tests:
   - E2E upload/download/delete flows
   - E2E validation error cases (bad type, oversize, over-limit)
   - Playwright-based mocking strategy for pre-signed URL flows where direct S3 is unavailable in CI
-- [ ] Ensure CI workflows include and pass new tests.
+- [x] Ensure CI workflows include and pass new tests.
+- [x] Ensure local `make verify` includes full E2E orchestration (Playwright API/S3 mocks) and `KEEP_STACK_UP` / `RUN_E2E` options.
 
 ---
 
 ## Phase 5: OpenAPI, README, and Runbook Alignment
 
-- [ ] Update `docs/api/openapi.yaml` with all new endpoints and schemas (attachments + delete endpoints).
-- [ ] Reconcile OpenAPI with runtime DTOs for existing requests/comments endpoints.
-- [ ] Update README:
-  - mark attachment implementation status accurately
-  - fix phase inconsistency for attachments
-  - align AI-assist section with actual state
-- [ ] Update deployment runbook for attachment env vars and S3 verification.
-- [ ] Update incident runbook with attachment failure cases:
+- [x] Update `docs/api/openapi.yaml` with all new endpoints and schemas (attachments + delete endpoints).
+- [x] Reconcile OpenAPI with runtime DTOs for existing requests/comments endpoints.
+- [x] Update README:
+  - [x] mark attachment implementation status accurately
+  - [x] fix phase inconsistency for attachments
+  - [x] align AI-assist section with actual state
+- [x] Update deployment runbook for attachment env vars and S3 verification.
+- [x] Update incident runbook with attachment failure cases:
   - S3 CORS failure
   - pre-signed URL expired
   - confirm not called / pending orphan files
@@ -222,7 +228,7 @@
 
 ## Definition of Done (Attachments + Delete Baseline)
 
-- [ ] Request/comment attachments are fully functional with private S3 and RBAC.
-- [ ] Request/comment delete endpoints are implemented and attachment cleanup is verified.
-- [ ] API, web, CI tests, OpenAPI, README, and runbooks are all consistent.
-- [ ] No plaintext secret leakage and no public S3 object exposure in the final setup.
+- [x] Request/comment attachments are fully functional with private S3 and RBAC.
+- [x] Request/comment delete endpoints are implemented and attachment cleanup is verified.
+- [x] API, web, CI tests, OpenAPI, README, and runbooks are all consistent.
+- [x] No plaintext secret leakage and no public S3 object exposure in the final setup.

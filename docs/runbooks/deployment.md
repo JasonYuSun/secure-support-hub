@@ -54,6 +54,28 @@ docker compose -f infra/docker-compose/docker-compose.yml up --build -d
 docker compose -f infra/docker-compose/docker-compose.yml logs -f api
 ```
 
+### Optional LocalStack (attachments)
+
+Use this mode when you need local S3 attachment flow testing without AWS:
+
+```bash
+AWS_REGION=ap-southeast-2 \
+AWS_S3_ATTACHMENT_BUCKET_NAME=securehub-attachments-local \
+AWS_S3_ENDPOINT=http://localstack:4566 \
+ATTACHMENTS_AWS_ACCESS_KEY_ID=test \
+ATTACHMENTS_AWS_SECRET_ACCESS_KEY=test \
+docker compose -f infra/docker-compose/docker-compose.yml --profile localstack up --build
+```
+
+- LocalStack is optional and only starts when `--profile localstack` is used.
+- Bucket bootstrap script: `infra/docker-compose/localstack/init/01-create-attachments-bucket.sh`
+- API env vars used by attachment integration:
+  - `AWS_S3_ATTACHMENT_BUCKET_NAME`
+  - `AWS_REGION`
+  - `AWS_S3_ENDPOINT`
+  - `ATTACHMENTS_AWS_ACCESS_KEY_ID`
+  - `ATTACHMENTS_AWS_SECRET_ACCESS_KEY`
+
 ---
 
 ## 2. AWS ECS Fargate — Dev First (Primary Cloud Path)

@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/infra/docker-compose/docker-compose.yml"
 KEEP_STACK_UP="${KEEP_STACK_UP:-0}"
+RUN_E2E="${RUN_E2E:-1}"
 
 step() {
   echo
@@ -58,8 +59,18 @@ step "Running frontend build"
 (
   cd "$ROOT_DIR/apps/web"
   npm ci
+  npm run lint
   npm run build
 )
+
+if [[ "$RUN_E2E" == "1" ]]; then
+  step "Running frontend E2E tests"
+  (
+    cd "$ROOT_DIR/apps/web"
+    npx playwright install chromium
+    npm run test:e2e
+  )
+fi
 
 step "Checking Swagger UI"
 swagger_status="$(curl -sS -o /dev/null -w "%{http_code}" http://localhost:8080/swagger-ui.html)"
