@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchRequests, updateRequest, type RequestStatus } from '../api/requests'
 import StatusBadge from '../components/StatusBadge'
+import AssigneeSelect from '../components/AssigneeSelect'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const STATUS_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
@@ -92,8 +93,11 @@ const TriagePage: React.FC = () => {
                                                 </td>
                                                 <td><StatusBadge status={req.status} /></td>
                                                 <td className="text-sm text-muted">{req.createdBy.username}</td>
-                                                <td className="text-sm text-muted">
-                                                    {req.assignedTo?.username ?? '—'}
+                                                <td className="text-sm">
+                                                    <AssigneeSelect
+                                                        requestId={req.id}
+                                                        currentAssigneeId={req.assignedTo?.id}
+                                                    />
                                                 </td>
                                                 <td className="text-sm text-muted">{formatDate(req.createdAt)}</td>
                                                 <td>

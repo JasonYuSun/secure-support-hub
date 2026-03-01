@@ -7,7 +7,7 @@ import DashboardPage from './pages/DashboardPage'
 import CreateRequestPage from './pages/CreateRequestPage'
 import RequestDetailPage from './pages/RequestDetailPage'
 import TriagePage from './pages/TriagePage'
-import AdminUsersPage from './pages/AdminUsersPage'
+import AdminPage from './pages/AdminPage'
 
 const App: React.FC = () => (
     <AuthProvider>
@@ -24,7 +24,7 @@ const App: React.FC = () => (
             } />
             <Route path="/admin/users" element={
                 <ProtectedRoute roles={['ADMIN']}>
-                    <><Navbar /><AdminUsersPage /></>
+                    <><Navbar /><AdminPage /></>
                 </ProtectedRoute>
             } />
 

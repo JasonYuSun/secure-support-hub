@@ -23,6 +23,7 @@ import {
 import { useAuth } from '../auth/AuthContext'
 import StatusBadge from '../components/StatusBadge'
 import AttachmentList from '../components/AttachmentList'
+import AssigneeSelect from '../components/AssigneeSelect'
 import AttachmentUploader from '../components/AttachmentUploader'
 import { ArrowLeft, MessageSquare, Send, Trash2 } from 'lucide-react'
 
@@ -96,9 +97,9 @@ const RequestDetailPage: React.FC = () => {
 
     const commentAttachmentsById = useMemo(() => {
         const map = new Map<number, Attachment[]>()
-        ;(comments?.content ?? []).forEach((comment, index) => {
-            map.set(comment.id, commentAttachmentQueries[index]?.data ?? [])
-        })
+            ; (comments?.content ?? []).forEach((comment, index) => {
+                map.set(comment.id, commentAttachmentQueries[index]?.data ?? [])
+            })
         return map
     }, [comments?.content, commentAttachmentQueries])
 
@@ -287,9 +288,16 @@ const RequestDetailPage: React.FC = () => {
                         </div>
                         <div>
                             <p className="text-xs text-muted" style={{ marginBottom: 4 }}>Assigned to</p>
-                            <p style={{ fontWeight: 500, fontSize: 14 }}>
-                                {request.assignedTo?.username ?? <span style={{ color: 'var(--color-text-subtle)' }}>Unassigned</span>}
-                            </p>
+                            {isTriageOrAdmin ? (
+                                <AssigneeSelect
+                                    requestId={request.id}
+                                    currentAssigneeId={request.assignedTo?.id}
+                                />
+                            ) : (
+                                <p style={{ fontWeight: 500, fontSize: 14 }}>
+                                    {request.assignedTo?.username ?? <span style={{ color: 'var(--color-text-subtle)' }}>Unassigned</span>}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <p className="text-xs text-muted" style={{ marginBottom: 4 }}>Last updated</p>
