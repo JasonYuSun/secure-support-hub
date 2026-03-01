@@ -243,22 +243,22 @@ The API follows consistent patterns:
 
 **Main resource groups (high level):**
 
-| Method  | Path                             | Description                    |
-| ------- | -------------------------------- | ------------------------------ |
-| `POST`  | `/api/v1/auth/login`             | Authenticate and receive JWT   |
-| `GET`   | `/api/v1/me`                     | Current user profile + roles   |
-| `GET`   | `/api/v1/admin/users`            | List users (ADMIN only)        |
-| `GET`   | `/api/v1/admin/users/{id}`       | Get user details (ADMIN only)  |
-| `PATCH` | `/api/v1/admin/users/{id}/roles` | Replace user roles (ADMIN only)|
+| Method  | Path                             | Description                       |
+| ------- | -------------------------------- | --------------------------------- |
+| `POST`  | `/api/v1/auth/login`             | Authenticate and receive JWT      |
+| `GET`   | `/api/v1/me`                     | Current user profile + roles      |
+| `GET`   | `/api/v1/admin/users`            | List users (ADMIN only)           |
+| `GET`   | `/api/v1/admin/users/{id}`       | Get user details (ADMIN only)     |
+| `PATCH` | `/api/v1/admin/users/{id}/roles` | Replace user roles (ADMIN only)   |
 | `GET`   | `/api/v1/admin/roles`            | List available roles (ADMIN only) |
-| `GET`   | `/api/v1/requests`               | List requests with filters     |
-| `POST`  | `/api/v1/requests`               | Create request                 |
-| `GET`   | `/api/v1/requests/{id}`          | Request details                |
-| `POST`  | `/api/v1/requests/{id}/comments` | Add comment                    |
-| `PATCH` | `/api/v1/requests/{id}`          | Status/assignee updates (RBAC) |
-| `POST`  | `/api/v1/ai/summarize`           | AI summary (opt-in)            |
-| `POST`  | `/api/v1/ai/suggest-tags`        | Tag suggestions (opt-in)       |
-| `POST`  | `/api/v1/ai/draft-response`      | Response draft (opt-in)        |
+| `GET`   | `/api/v1/requests`               | List requests with filters        |
+| `POST`  | `/api/v1/requests`               | Create request                    |
+| `GET`   | `/api/v1/requests/{id}`          | Request details                   |
+| `POST`  | `/api/v1/requests/{id}/comments` | Add comment                       |
+| `PATCH` | `/api/v1/requests/{id}`          | Status/assignee updates (RBAC)    |
+| `POST`  | `/api/v1/ai/summarize`           | AI summary (opt-in)               |
+| `POST`  | `/api/v1/ai/suggest-tags`        | Tag suggestions (opt-in)          |
+| `POST`  | `/api/v1/ai/draft-response`      | Response draft (opt-in)           |
 
 The canonical contract is published via OpenAPI:
 
@@ -277,11 +277,11 @@ The canonical contract is published via OpenAPI:
 
 ### Authorization (RBAC)
 
-| Role     | Permissions                                                   |
-| -------- | ------------------------------------------------------------- |
-| `USER`   | Create requests, view own requests, comment on own requests   |
-| `TRIAGE` | View and manage all requests, assign requests, change status  |
-| `ADMIN`  | User/role management, system-level configuration              |
+| Role     | Permissions                                                  |
+| -------- | ------------------------------------------------------------ |
+| `USER`   | Create requests, view own requests, comment on own requests  |
+| `TRIAGE` | View and manage all requests, assign requests, change status |
+| `ADMIN`  | User/role management, system-level configuration             |
 
 ### Secure-by-default practices
 
@@ -368,7 +368,7 @@ Terraform provisions:
 - Application Load Balancer (ALB)
 - ECR repositories
 - RDS Postgres
-- S3 for attachments (Phase 3)
+- S3 for attachments (Phase 2)
 - IAM roles and OIDC trust for CI/CD
 
 ---

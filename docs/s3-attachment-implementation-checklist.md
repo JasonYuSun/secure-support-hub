@@ -40,7 +40,7 @@
 - [x] JWT login and RBAC (`USER`, `TRIAGE`, `ADMIN`).
 - [x] Support request create/list/detail/update.
 - [x] Request comments create/list.
-- [ ] Attachments are not implemented in backend/frontend/OpenAPI.
+- [ ] Attachments are implemented in backend API; frontend + OpenAPI updates are still pending.
 - [ ] Request delete endpoint is not implemented.
 - [ ] Comment delete endpoint is not implemented.
 - [ ] AI-assist endpoints/UI are not implemented (README mentions them).
@@ -53,8 +53,8 @@
 
 ### Docs and contract consistency
 
-- [ ] `docs/api/openapi.yaml` does not fully match runtime DTO shapes.
-- [ ] README roadmap/feature status has attachment phase inconsistency (`Phase 2` vs `Phase 3`).
+- [x] `docs/api/openapi.yaml` does not fully match runtime DTO shapes.
+- [x] README roadmap/feature status has attachment phase inconsistency (`Phase 2` vs `Phase 3`).
 - [ ] README documents AI endpoints that are not implemented.
 - [x] Deployment runbook is aligned with Fargate-only runtime operations.
 
@@ -92,11 +92,9 @@
 
 ### 2.1 Data model and migration
 
-- [ ] Add Flyway migration for attachment metadata table.
-- [ ] Support both parent types with explicit model:
-  - Option A: `request_id` nullable + `comment_id` nullable + check constraint "exactly one present" (recommended)
-  - Option B: polymorphic `parent_type` + `parent_id`
-- [ ] Define concrete attachment columns (adapt to selected model), including:
+- [x] Add Flyway migration for attachment metadata table.
+- [x] Support both parent types with explicit model: `request_id` nullable + `comment_id` nullable + check constraint "exactly one present"
+- [x] Define concrete attachment columns (adapt to selected model), including:
   - `id`
   - `request_id` and/or `comment_id` (or `parent_type` + `parent_id`)
   - `file_name`
@@ -106,19 +104,19 @@
   - `state` (`PENDING`, `ACTIVE`, `FAILED`)
   - `uploaded_by`
   - `created_at`
-- [ ] Track attachment lifecycle state (`PENDING`, `ACTIVE`, `FAILED`) to support upload confirm flow.
-- [ ] Track who uploaded and timestamps.
-- [ ] Define indexes for request/comment lookup and cleanup jobs.
+- [x] Track attachment lifecycle state (`PENDING`, `ACTIVE`, `FAILED`) to support upload confirm flow.
+- [x] Track who uploaded and timestamps.
+- [x] Define indexes for request/comment lookup and cleanup jobs.
 
 ### 2.2 S3 integration
 
-- [ ] Add AWS SDK v2 dependencies (`s3`, `s3-presigner`) in `apps/api/build.gradle.kts`.
-- [ ] Add S3 client/presigner config (AWS runtime and optional LocalStack endpoint override).
-- [ ] Create explicit Spring beans for `S3Client` and `S3Presigner` (AWS SDK v2), with endpoint override for local profile/testing.
-- [ ] Define deterministic object key format:
+- [x] Add AWS SDK v2 dependencies (`s3`, `s3-presigner`) in `apps/api/build.gradle.kts` (`s3` module provides `S3Presigner`).
+- [x] Add S3 client/presigner config (AWS runtime and optional LocalStack endpoint override).
+- [x] Create explicit Spring beans for `S3Client` and `S3Presigner` (AWS SDK v2), with endpoint override for local profile/testing.
+- [x] Define deterministic object key format:
   - `requests/{requestId}/attachments/{attachmentId}/{sanitizedFilename}`
   - `requests/{requestId}/comments/{commentId}/attachments/{attachmentId}/{sanitizedFilename}`
-- [ ] Enforce server-side validation before issuing pre-signed URL:
+- [x] Enforce server-side validation before issuing pre-signed URL:
   - MIME allowlist
   - max size (`10 MiB`)
   - parent ownership/authorization
@@ -126,22 +124,22 @@
 
 ### 2.3 Endpoints and RBAC
 
-- [ ] Implement request attachment endpoints:
+- [x] Implement request attachment endpoints:
   - `POST /api/v1/requests/{id}/attachments/upload-url`
   - `POST /api/v1/requests/{id}/attachments/{attachmentId}/confirm`
   - `GET /api/v1/requests/{id}/attachments`
   - `GET /api/v1/requests/{id}/attachments/{attachmentId}/download-url`
-  - `DELETE /api/v1/requests/{id}/attachments/{attachmentId}` (optional but recommended)
-- [ ] Implement comment attachment endpoints with equivalent flow:
+  - `DELETE /api/v1/requests/{id}/attachments/{attachmentId}` (optional, not yet implemented)
+- [x] Implement comment attachment endpoints with equivalent flow:
   - `POST /api/v1/requests/{requestId}/comments/{commentId}/attachments/upload-url`
   - `POST /api/v1/requests/{requestId}/comments/{commentId}/attachments/{attachmentId}/confirm`
   - `GET /api/v1/requests/{requestId}/comments/{commentId}/attachments`
   - `GET /api/v1/requests/{requestId}/comments/{commentId}/attachments/{attachmentId}/download-url`
-  - `DELETE /api/v1/requests/{requestId}/comments/{commentId}/attachments/{attachmentId}` (optional but recommended)
-- [ ] RBAC rule implementation:
+  - `DELETE /api/v1/requests/{requestId}/comments/{commentId}/attachments/{attachmentId}` (optional, not yet implemented)
+- [x] RBAC rule implementation:
   - `USER`: only own request/comment thread attachments
   - `TRIAGE`/`ADMIN`: all attachments
-- [ ] Harden logging: never log pre-signed URLs, tokens, or sensitive object metadata.
+- [x] Harden logging: never log pre-signed URLs, tokens, or sensitive object metadata.
 
 ### 2.4 Delete capabilities (newly added scope)
 
