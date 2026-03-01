@@ -20,6 +20,10 @@ permissions:
   id-token: write # Required for requesting the JWT for OIDC
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     name: Build & Deploy
