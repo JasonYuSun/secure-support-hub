@@ -36,13 +36,7 @@ A production-style, secure support request management app built to demonstrate *
   - [Deployment](#deployment)
     - [Docker (dev)](#docker-dev)
     - [AWS ECS Fargate (dev first)](#aws-ecs-fargate-dev-first)
-    - [Kubernetes (optional manifests)](#kubernetes-optional-manifests)
     - [AWS services used](#aws-services-used)
-  - [Observability \& operations](#observability--operations)
-    - [Health checks](#health-checks)
-    - [Logging](#logging)
-    - [Metrics \& tracing](#metrics--tracing)
-    - [Runbooks](#runbooks)
   - [Project structure](#project-structure)
   - [Roadmap](#roadmap)
     - [MVP](#mvp)
@@ -85,9 +79,7 @@ A production-style web app that lets teams create, triage, and track support req
 	• summarizes the issue
 	• suggests tags (e.g., billing, login, kubernetes)
 	• proposes a first response draft
-4. A triage engineer views the queue, filters by SLA priority, assigns owners.
-5. Status changes trigger events (audit log + notifications).
-6. Ops view shows request volume, latency, error rate, SLA breaches.
+4. A triage engineer views the queue
 
 ### Product features
 
@@ -160,9 +152,6 @@ Detailed runtime architecture documentation:
 
 - Docker + Docker Compose (local)
 - AWS ECS Fargate (dev-first deployment target)
-- Kubernetes manifests (optional portability path)
-- OpenTelemetry instrumentation (tracing)
-- Prometheus metrics endpoint
 - GitHub Actions CI/CD
 - AWS: ECR/ECS Fargate/RDS/ALB/CloudWatch/S3
 
@@ -347,12 +336,6 @@ Sensitive data handling baseline:
 - GitHub Environment Variables are non-sensitive metadata only
 - Pipeline logs/artifacts should publish sanitized outputs only (no plaintext secret values)
 
-**Recommended add-ons:**
-
-- Dependabot for dependency updates
-- CodeQL for static analysis
-- Trivy/Grype for container scanning
-
 ---
 
 ## Deployment
@@ -377,20 +360,6 @@ Execution checklist:
   - `Phase 6`: runtime configuration mapping (secret vs non-secret split)
   - `Phase 7`: GitHub OIDC + app CD + Terraform pipeline (IaC)
 
-### Kubernetes (optional manifests)
-
-Kubernetes manifests live in:
-
-- `infra/k8s/base`: standard k8s resources
-- `infra/k8s/overlays/dev`: dev values (lower resources, local ingress)
-- `infra/k8s/overlays/prod`: production-like values
-
-Typical commands (kustomize):
-
-```bash
-kubectl apply -k infra/k8s/overlays/dev
-```
-
 ### AWS services used
 
 Terraform provisions:
@@ -404,33 +373,6 @@ Terraform provisions:
 
 ---
 
-## Observability & operations
-
-### Health checks
-
-- Liveness/readiness via Spring Boot Actuator
-
-### Logging
-
-- Structured JSON logs
-- Request IDs for traceability
-- Audit logs for key state changes (status/assignee/role changes)
-
-### Metrics & tracing
-
-- Prometheus scraping endpoint
-- OpenTelemetry traces exported to a collector
-- Dashboards stored under `docs/observability/`
-
-### Runbooks
-
-Operational documentation is stored in:
-
-- `docs/runbooks/incident-response.md`
-- `docs/runbooks/deployment.md`
-
----
-
 ## Project structure
 
 ```
@@ -440,12 +382,6 @@ secure-support-hub/
     api/                     # Spring Boot REST API
   infra/
     docker-compose/
-    k8s/
-      base/
-      overlays/
-        dev/
-        prod/
-        openshift/
     terraform/               # AWS provisioning
   docs/
     architecture/
@@ -475,14 +411,11 @@ secure-support-hub/
 
 ### Phase 2
 
-- SLA priority & breach detection
-- Audit log expansion
-- Notifications (webhook/email stub)
-- Security scanning in CI
+- Attachments backed by S3
+- AI Assist feature
 
 ### Phase 3
 
-- Attachments backed by S3
 - Canary/blue-green deployment workflow
 - Multi-tenant support (org scoping)
 - Full observability stack (OTel collector + dashboards)
