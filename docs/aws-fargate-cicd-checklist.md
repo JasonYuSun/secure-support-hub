@@ -26,7 +26,7 @@
 
 ## Phase 0: Decide your MVP deployment shape
 
-- [x] Confirm runtime: `ECS Fargate` (no EKS for MVP).
+- [x] Confirm runtime: `ECS Fargate`.
 - [x] Confirm components for MVP:
   - `web` container (React static site served by Nginx)
   - `api` container (Spring Boot)

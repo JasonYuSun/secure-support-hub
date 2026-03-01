@@ -11,7 +11,6 @@
 - Docker ≥ 24 and Docker Compose plugin installed
 - Access to the container registry (for prod)
 - `aws` CLI configured for `ap-southeast-2` (AWS cloud deployments)
-- kubectl + kustomize (optional, only for Kubernetes manifest path)
 
 ---
 
@@ -73,60 +72,7 @@ Use the checklist phases in order:
 
 ---
 
-## 3. Kubernetes — Dev Overlay (Optional)
-
-### Deploy
-
-```bash
-# Apply the dev overlay (lower replicas, dev config)
-kubectl apply -k infra/k8s/overlays/dev
-
-# Verify rollout
-kubectl -n secure-support-hub rollout status deployment/api
-kubectl -n secure-support-hub rollout status deployment/web
-
-# Check pods
-kubectl -n secure-support-hub get pods
-```
-
-### Port-forward for local testing
-
-```bash
-kubectl -n secure-support-hub port-forward svc/api 8080:8080 &
-kubectl -n secure-support-hub port-forward svc/web 5173:80 &
-```
-
----
-
-## 4. Kubernetes — Production Overlay (Optional)
-
-### Deploy
-
-```bash
-# Set your image tags in the prod kustomization overlay before deploying
-# infra/k8s/overlays/prod/kustomization.yaml → images section
-
-kubectl apply -k infra/k8s/overlays/prod
-
-# Monitor rollout
-kubectl -n secure-support-hub rollout status deployment/api --timeout=5m
-kubectl -n secure-support-hub rollout status deployment/web --timeout=5m
-```
-
-### Verify post-deploy
-
-```bash
-# Health
-kubectl -n secure-support-hub exec -it deploy/api -- \
-  wget -qO- http://localhost:8080/actuator/health
-
-# Check logs for startup errors
-kubectl -n secure-support-hub logs deploy/api --tail=50
-```
-
----
-
-## 5. Rollback Procedure
+## 3. Rollback Procedure
 
 ### AWS ECS Fargate (Primary Cloud Path)
 
@@ -153,20 +99,9 @@ aws ecs update-service \
 docker compose -f infra/docker-compose/docker-compose.yml up -d
 ```
 
-### Kubernetes
-
-```bash
-# Roll back to the previous ReplicaSet
-kubectl -n secure-support-hub rollout undo deployment/api
-kubectl -n secure-support-hub rollout undo deployment/web
-
-# Verify rollback
-kubectl -n secure-support-hub rollout status deployment/api
-```
-
 ---
 
-## 6. Database Migrations
+## 4. Database Migrations
 
 Flyway migrations run automatically on API startup. To run manually:
 
@@ -188,11 +123,11 @@ To view migration status:
 
 ---
 
-## 7. Secret Rotation (JWT_SECRET)
+## 5. Secret Rotation (JWT_SECRET)
 
 Rotating the JWT secret invalidates all active user sessions.
 
 1. Generate a new secret: `openssl rand -base64 64`
-2. Update `JWT_SECRET` in the deployment environment (AWS Secrets Manager, Kubernetes Secret, or `.env`)
-3. Restart the API pods/containers
+2. Update `JWT_SECRET` in the deployment environment (AWS Secrets Manager / SSM Parameter Store, or local `.env`)
+3. Restart the API ECS service or local container
 4. Inform users: all active sessions will be terminated; users must log in again

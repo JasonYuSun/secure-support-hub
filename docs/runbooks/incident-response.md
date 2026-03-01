@@ -120,11 +120,6 @@
      --region ap-southeast-2
    ```
 
-   Kubernetes (optional path):
-   ```bash
-   kubectl -n secure-support-hub scale deployment api --replicas=3
-   ```
-
 6. **Open a Severity-1 incident** if P95 latency > 5s or error rate > 5% sustained for more than 5 minutes.
 
 ---

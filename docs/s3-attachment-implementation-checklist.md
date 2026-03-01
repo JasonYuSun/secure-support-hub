@@ -56,7 +56,7 @@
 - [ ] `docs/api/openapi.yaml` does not fully match runtime DTO shapes.
 - [ ] README roadmap/feature status has attachment phase inconsistency (`Phase 2` vs `Phase 3`).
 - [ ] README documents AI endpoints that are not implemented.
-- [ ] Deployment runbook references Kubernetes path but repo has no `infra/k8s`.
+- [ ] Deployment runbook is aligned with Fargate-only runtime operations.
 
 ---
 

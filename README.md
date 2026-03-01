@@ -1,6 +1,6 @@
 # Secure Support Hub (Side Project)
 
-A production-style, secure support request management app built to demonstrate **end-to-end ownership** across **React (TypeScript)**, **Java / Spring Boot**, **REST APIs**, **CI/CD**, and **AWS (ECS Fargate) with optional Kubernetes portability**.
+A production-style, secure support request management app built to demonstrate **end-to-end ownership** across **React (TypeScript)**, **Java / Spring Boot**, **REST APIs**, **CI/CD**, and **AWS ECS Fargate**.
 
 ---
 
@@ -53,7 +53,7 @@ This repo is designed to match a Senior Software Engineer role that values:
 - **End-to-end delivery**: from solution design → implementation → production readiness → support
 - **Maintainability**: clear boundaries, strong contracts, automated tests, sensible defaults
 - **Operational discipline**: metrics, logs, health checks, runbooks, and incident readiness
-- **Platform fit**: containerized services deployed on **AWS ECS Fargate** (MVP target), with Kubernetes manifests retained for portability
+- **Platform fit**: containerized services deployed on **AWS ECS Fargate** (MVP target)
 
 It intentionally prioritizes **simplicity and extensibility** over novelty.
 
@@ -77,7 +77,7 @@ A production-style web app that lets teams create, triage, and track support req
 2. Creates a support request with title/description + attachments.
 3. “AI Assist” button:
 	• summarizes the issue
-	• suggests tags (e.g., billing, login, kubernetes)
+	• suggests tags (e.g., billing, login, network)
 	• proposes a first response draft
 4. A triage engineer views the queue
 
@@ -122,7 +122,7 @@ At a high level:
 
 - `apps/web`: UI for request creation, triage queue, and detail views
 - `apps/api`: REST APIs, auth, validation, business rules, persistence
-- `infra/`: Docker Compose for local dev, Terraform/AWS deployment assets, and optional Kubernetes manifests
+- `infra/`: Docker Compose for local dev and Terraform/AWS deployment assets
 
 Detailed runtime architecture documentation:
 
@@ -289,7 +289,7 @@ The canonical contract is published via OpenAPI:
 - Centralized exception handling (no stack traces leaked)
 - Rate limiting on auth endpoints
 - Audit logging for sensitive state changes
-- Secrets are never committed; use env vars / AWS Secrets Manager (or Kubernetes Secrets where applicable)
+- Secrets are never committed; use env vars / AWS Secrets Manager / SSM Parameter Store
 
 ---
 
