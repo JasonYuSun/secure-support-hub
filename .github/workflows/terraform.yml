@@ -25,6 +25,9 @@ jobs:
     name: Terraform Plan
     runs-on: ubuntu-latest
     environment: dev
+    concurrency:
+      group: terraform-plan-${{ github.ref }}
+      cancel-in-progress: true
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
