@@ -102,4 +102,41 @@ class SupportRequestControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
     }
+
+    @Test
+    void deleteRequest_asOwner_shouldReturn204() throws Exception {
+        Long requestId = createRequest(userToken, "Delete by owner", "Owner delete test");
+
+        mockMvc.perform(delete("/api/v1/requests/{id}", requestId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/requests/{id}", requestId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteRequest_forAnotherUsersRequest_shouldReturn403() throws Exception {
+        Long triageOwnedRequestId = createRequest(triageToken, "Triage-owned", "Should block plain user");
+
+        mockMvc.perform(delete("/api/v1/requests/{id}", triageOwnedRequestId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isForbidden());
+    }
+
+    private Long createRequest(String token, String title, String description) throws Exception {
+        CreateRequestDto dto = new CreateRequestDto();
+        dto.setTitle(title);
+        dto.setDescription(description);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/requests")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+    }
 }

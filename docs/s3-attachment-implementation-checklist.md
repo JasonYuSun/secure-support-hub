@@ -41,8 +41,8 @@
 - [x] Support request create/list/detail/update.
 - [x] Request comments create/list.
 - [ ] Attachments are implemented in backend API; frontend + OpenAPI updates are still pending.
-- [ ] Request delete endpoint is not implemented.
-- [ ] Comment delete endpoint is not implemented.
+- [x] Request delete endpoint is implemented.
+- [x] Comment delete endpoint is implemented.
 - [ ] AI-assist endpoints/UI are not implemented (README mentions them).
 
 ### Platform and delivery
@@ -129,13 +129,13 @@
   - `POST /api/v1/requests/{id}/attachments/{attachmentId}/confirm`
   - `GET /api/v1/requests/{id}/attachments`
   - `GET /api/v1/requests/{id}/attachments/{attachmentId}/download-url`
-  - `DELETE /api/v1/requests/{id}/attachments/{attachmentId}` (optional, not yet implemented)
+  - `DELETE /api/v1/requests/{id}/attachments/{attachmentId}`
 - [x] Implement comment attachment endpoints with equivalent flow:
   - `POST /api/v1/requests/{requestId}/comments/{commentId}/attachments/upload-url`
   - `POST /api/v1/requests/{requestId}/comments/{commentId}/attachments/{attachmentId}/confirm`
   - `GET /api/v1/requests/{requestId}/comments/{commentId}/attachments`
   - `GET /api/v1/requests/{requestId}/comments/{commentId}/attachments/{attachmentId}/download-url`
-  - `DELETE /api/v1/requests/{requestId}/comments/{commentId}/attachments/{attachmentId}` (optional, not yet implemented)
+  - `DELETE /api/v1/requests/{requestId}/comments/{commentId}/attachments/{attachmentId}`
 - [x] RBAC rule implementation:
   - `USER`: only own request/comment thread attachments
   - `TRIAGE`/`ADMIN`: all attachments
@@ -143,16 +143,16 @@
 
 ### 2.4 Delete capabilities (newly added scope)
 
-- [ ] Add request delete endpoint (hard delete MVP):
+- [x] Add request delete endpoint (hard delete MVP):
   - `DELETE /api/v1/requests/{id}`
-  - permission: owner or triage/admin (confirm exact rule in API contract)
-- [ ] Add comment delete endpoint:
+  - permission: owner or triage/admin
+- [x] Add comment delete endpoint:
   - `DELETE /api/v1/requests/{requestId}/comments/{commentId}`
-  - permission: comment author or triage/admin (confirm exact rule in API contract)
-- [ ] Implement cascade attachment cleanup on delete:
+  - permission: comment author or triage/admin
+- [x] Implement cascade attachment cleanup on delete:
   - delete attachment metadata rows
   - delete S3 objects (best-effort with retry or cleanup job)
-- [ ] Add cleanup strategy for orphaned `PENDING` uploads (scheduled task/TTL).
+- [x] Add cleanup strategy for orphaned `PENDING` uploads (scheduled task/TTL).
 
 ---
 

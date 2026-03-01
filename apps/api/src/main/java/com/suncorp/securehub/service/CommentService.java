@@ -22,6 +22,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final SupportRequestRepository requestRepository;
     private final UserRepository userRepository;
+    private final AttachmentService attachmentService;
 
     private static final Set<String> TRIAGE_ROLES = Set.of("ROLE_TRIAGE", "ROLE_ADMIN");
 
@@ -56,6 +57,21 @@ public class CommentService {
         return commentRepository.findByRequestId(requestId,
                 PageRequest.of(page, size, Sort.by("createdAt").ascending()))
                 .map(this::toDto);
+    }
+
+    @Transactional
+    public void deleteComment(Long requestId, Long commentId, String username, Set<String> roles) {
+        Comment comment = commentRepository.findByIdAndRequest_Id(commentId, requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment", "id", commentId));
+
+        boolean isTriage = roles.stream().anyMatch(TRIAGE_ROLES::contains);
+        boolean isAuthor = comment.getAuthor().getUsername().equals(username);
+        if (!isTriage && !isAuthor) {
+            throw new AccessDeniedException("Only comment author, TRIAGE, or ADMIN can delete this comment");
+        }
+
+        attachmentService.deleteAllForComment(commentId);
+        commentRepository.delete(comment);
     }
 
     private CommentDto toDto(Comment c) {

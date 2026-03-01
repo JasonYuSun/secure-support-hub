@@ -78,4 +78,15 @@ public class SupportRequestController {
                 .map(a -> a.getAuthority()).collect(Collectors.toSet());
         return ResponseEntity.ok(requestService.updateRequest(id, dto, principal.getUsername(), roles));
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete support request (owner or TRIAGE/ADMIN)")
+    public ResponseEntity<Void> deleteRequest(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails principal) {
+        Set<String> roles = principal.getAuthorities().stream()
+                .map(a -> a.getAuthority()).collect(Collectors.toSet());
+        requestService.deleteRequest(id, principal.getUsername(), roles);
+        return ResponseEntity.noContent().build();
+    }
 }

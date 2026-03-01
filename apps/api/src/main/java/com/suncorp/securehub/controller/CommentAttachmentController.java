@@ -73,6 +73,19 @@ public class CommentAttachmentController {
                 requestId, commentId, attachmentId, principal.getUsername(), roles(principal)));
     }
 
+    @DeleteMapping("/{attachmentId}")
+    @Operation(summary = "Delete comment attachment")
+    public ResponseEntity<Void> deleteAttachment(
+            @PathVariable Long requestId,
+            @PathVariable Long commentId,
+            @PathVariable Long attachmentId,
+            @AuthenticationPrincipal UserDetails principal
+    ) {
+        attachmentService.deleteCommentAttachment(
+                requestId, commentId, attachmentId, principal.getUsername(), roles(principal));
+        return ResponseEntity.noContent().build();
+    }
+
     private Set<String> roles(UserDetails principal) {
         return principal.getAuthorities().stream()
                 .map(a -> a.getAuthority())

@@ -46,6 +46,9 @@ app:
     comment-max-count: ${ATTACHMENTS_MAX_COUNT_PER_COMMENT:5}
     upload-url-ttl: ${ATTACHMENTS_UPLOAD_URL_TTL:PT5M}
     download-url-ttl: ${ATTACHMENTS_DOWNLOAD_URL_TTL:PT5M}
+    pending-upload-max-age: ${ATTACHMENTS_PENDING_UPLOAD_MAX_AGE:PT1H}
+    pending-cleanup-cron: ${ATTACHMENTS_PENDING_CLEANUP_CRON:0 */10 * * * *}
+    s3-delete-max-attempts: ${ATTACHMENTS_S3_DELETE_MAX_ATTEMPTS:2}
     allowed-mime-types: ${ATTACHMENTS_ALLOWED_MIME_TYPES:image/jpeg,image/png,image/webp,application/pdf,text/plain,text/csv}
 
 management:

@@ -511,6 +511,22 @@ paths:
         '403':
           description: Insufficient role
 
+    delete:
+      summary: Delete a support request
+      tags: [Requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Request deleted
+        '403':
+          description: Insufficient role
+
   /api/v1/requests/{requestId}/comments:
     get:
       summary: List comments for a request
@@ -567,6 +583,29 @@ paths:
           description: Validation error
         '404':
           description: Request not found
+
+  /api/v1/requests/{requestId}/comments/{commentId}:
+    delete:
+      summary: Delete a comment
+      tags: [Comments]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Comment deleted
+        '403':
+          description: Insufficient role
 
   /api/v1/requests/{requestId}/attachments/upload-url:
     post:
@@ -663,6 +702,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AttachmentDownloadUrlResponseDto'
+
+  /api/v1/requests/{requestId}/attachments/{attachmentId}:
+    delete:
+      summary: Delete request attachment
+      tags: [Request Attachments]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Attachment deleted
 
   /api/v1/requests/{requestId}/comments/{commentId}/attachments/upload-url:
     post:
@@ -783,3 +843,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AttachmentDownloadUrlResponseDto'
+
+  /api/v1/requests/{requestId}/comments/{commentId}/attachments/{attachmentId}:
+    delete:
+      summary: Delete comment attachment
+      tags: [Comment Attachments]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Attachment deleted

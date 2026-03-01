@@ -40,11 +40,13 @@ class CommentControllerIT {
     @Autowired ObjectMapper objectMapper;
 
     private String userToken;
+    private String triageToken;
     private Long requestId;
 
     @BeforeEach
     void setUp() throws Exception {
         userToken = login("user", "password");
+        triageToken = login("triage", "password");
         requestId = createRequest(userToken, "Test request for comments", "A description");
     }
 
@@ -77,6 +79,20 @@ class CommentControllerIT {
 
         var node = objectMapper.readTree(result.getResponse().getContentAsString());
         return node.get("id").asLong();
+    }
+
+    private Long createComment(Long reqId, String token, String body) throws Exception {
+        CreateCommentDto comment = new CreateCommentDto();
+        comment.setBody(body);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/requests/{id}/comments", reqId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(comment)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
     }
 
     @Test
@@ -147,5 +163,30 @@ class CommentControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content[0].body").value("Listed comment."));
+    }
+
+    @Test
+    void deleteComment_asAuthor_shouldReturn204() throws Exception {
+        Long commentId = createComment(requestId, userToken, "Delete me.");
+
+        mockMvc.perform(delete("/api/v1/requests/{requestId}/comments/{commentId}", requestId, commentId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/requests/{id}/comments", requestId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content").isEmpty());
+    }
+
+    @Test
+    void deleteComment_asAnotherPlainUser_shouldReturn403() throws Exception {
+        Long triageRequestId = createRequest(triageToken, "Triage request", "Owned by triage");
+        Long triageCommentId = createComment(triageRequestId, triageToken, "Triage authored comment");
+
+        mockMvc.perform(delete("/api/v1/requests/{requestId}/comments/{commentId}", triageRequestId, triageCommentId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isForbidden());
     }
 }

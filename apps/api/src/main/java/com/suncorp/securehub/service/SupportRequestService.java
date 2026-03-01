@@ -22,6 +22,7 @@ public class SupportRequestService {
 
     private final SupportRequestRepository requestRepository;
     private final UserRepository userRepository;
+    private final AttachmentService attachmentService;
 
     private static final Set<String> TRIAGE_ROLES = Set.of("ROLE_TRIAGE", "ROLE_ADMIN");
 
@@ -80,6 +81,20 @@ public class SupportRequestService {
         }
 
         return toDto(requestRepository.save(req));
+    }
+
+    @Transactional
+    public void deleteRequest(Long id, String username, Set<String> roles) {
+        SupportRequest req = findById(id);
+        boolean isTriage = roles.stream().anyMatch(TRIAGE_ROLES::contains);
+        boolean isOwner = req.getCreatedBy().getUsername().equals(username);
+
+        if (!isTriage && !isOwner) {
+            throw new AccessDeniedException("Only request owner, TRIAGE, or ADMIN can delete this request");
+        }
+
+        attachmentService.deleteAllForRequest(id);
+        requestRepository.delete(req);
     }
 
     private void validateStatusTransition(RequestStatus current, RequestStatus next) {

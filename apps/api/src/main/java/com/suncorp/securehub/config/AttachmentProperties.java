@@ -42,6 +42,15 @@ public class AttachmentProperties {
     @NotNull
     private Duration downloadUrlTtl = Duration.ofMinutes(5);
 
+    @NotNull
+    private Duration pendingUploadMaxAge = Duration.ofHours(1);
+
+    @NotBlank
+    private String pendingCleanupCron = "0 */10 * * * *";
+
+    @Min(1)
+    private int s3DeleteMaxAttempts = 2;
+
     @NotEmpty
     private Set<String> allowedMimeTypes = new LinkedHashSet<>(
             Set.of(

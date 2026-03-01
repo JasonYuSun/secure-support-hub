@@ -10,11 +10,14 @@ import com.suncorp.securehub.repository.AttachmentRepository;
 import com.suncorp.securehub.repository.CommentRepository;
 import com.suncorp.securehub.repository.SupportRequestRepository;
 import com.suncorp.securehub.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
@@ -28,12 +31,16 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class AttachmentService {
 
@@ -143,6 +150,62 @@ public class AttachmentService {
         return toDownloadUrlResponse(attachment);
     }
 
+    @Transactional
+    public void deleteRequestAttachment(Long requestId, Long attachmentId, String username, Set<String> roles) {
+        findRequestAndAuthorize(requestId, username, roles);
+        Attachment attachment = attachmentRepository.findByIdAndRequest_Id(attachmentId, requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Attachment", "id", attachmentId));
+        deleteSingleAttachmentWithBestEffortS3(attachment);
+    }
+
+    @Transactional
+    public void deleteCommentAttachment(
+            Long requestId,
+            Long commentId,
+            Long attachmentId,
+            String username,
+            Set<String> roles
+    ) {
+        findCommentAndAuthorize(requestId, commentId, username, roles);
+        Attachment attachment = attachmentRepository.findByIdAndComment_Id(attachmentId, commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Attachment", "id", attachmentId));
+        deleteSingleAttachmentWithBestEffortS3(attachment);
+    }
+
+    @Transactional
+    public void deleteAllForRequest(Long requestId) {
+        List<Attachment> requestLevel = attachmentRepository.findByRequest_IdOrderByCreatedAtAsc(requestId);
+        List<Attachment> commentLevel = attachmentRepository.findByComment_Request_IdOrderByCreatedAtAsc(requestId);
+
+        List<Attachment> combined = new ArrayList<>(requestLevel.size() + commentLevel.size());
+        combined.addAll(requestLevel);
+        combined.addAll(commentLevel);
+        LinkedHashMap<Long, Attachment> deduplicatedMap = new LinkedHashMap<>();
+        for (Attachment attachment : combined) {
+            deduplicatedMap.put(attachment.getId(), attachment);
+        }
+        List<Attachment> deduplicated = new ArrayList<>(deduplicatedMap.values());
+
+        deleteManyAttachmentsWithBestEffortS3(deduplicated);
+    }
+
+    @Transactional
+    public void deleteAllForComment(Long commentId) {
+        List<Attachment> attachments = attachmentRepository.findByComment_IdOrderByCreatedAtAsc(commentId);
+        deleteManyAttachmentsWithBestEffortS3(attachments);
+    }
+
+    @Scheduled(cron = "${app.attachments.pending-cleanup-cron:0 */10 * * * *}")
+    @Transactional
+    public void cleanupOrphanedPendingAttachments() {
+        LocalDateTime cutoff = LocalDateTime.now().minus(attachmentProperties.getPendingUploadMaxAge());
+        List<Attachment> expiredPending = attachmentRepository.findByStateAndCreatedAtBefore(AttachmentState.PENDING, cutoff);
+        if (expiredPending.isEmpty()) {
+            return;
+        }
+        deleteManyAttachmentsWithBestEffortS3(expiredPending);
+    }
+
     private AttachmentUploadUrlResponseDto createUploadUrlAttachment(
             Long requestId,
             SupportRequest request,
@@ -221,6 +284,49 @@ public class AttachmentService {
 
         attachment.setState(AttachmentState.ACTIVE);
         return attachmentRepository.save(attachment);
+    }
+
+    private void deleteManyAttachmentsWithBestEffortS3(List<Attachment> attachments) {
+        if (attachments.isEmpty()) {
+            return;
+        }
+
+        for (Attachment attachment : attachments) {
+            deleteS3ObjectBestEffort(attachment.getS3ObjectKey(), attachment.getId());
+        }
+        attachmentRepository.deleteAllInBatch(attachments);
+    }
+
+    private void deleteSingleAttachmentWithBestEffortS3(Attachment attachment) {
+        deleteS3ObjectBestEffort(attachment.getS3ObjectKey(), attachment.getId());
+        attachmentRepository.delete(attachment);
+    }
+
+    private void deleteS3ObjectBestEffort(String objectKey, Long attachmentId) {
+        int maxAttempts = attachmentProperties.getS3DeleteMaxAttempts();
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                s3Client.deleteObject(DeleteObjectRequest.builder()
+                        .bucket(attachmentProperties.getBucketName())
+                        .key(objectKey)
+                        .build());
+                return;
+            } catch (NoSuchKeyException ex) {
+                return;
+            } catch (S3Exception ex) {
+                if (ex.statusCode() == 404) {
+                    return;
+                }
+                if (attempt == maxAttempts) {
+                    log.warn("Failed to delete attachment object from S3 after {} attempts for attachmentId={}",
+                            maxAttempts, attachmentId);
+                }
+            } catch (Exception ex) {
+                if (attempt == maxAttempts) {
+                    log.warn("Unexpected error deleting attachment object from S3 for attachmentId={}", attachmentId);
+                }
+            }
+        }
     }
 
     private AttachmentDownloadUrlResponseDto toDownloadUrlResponse(Attachment attachment) {
