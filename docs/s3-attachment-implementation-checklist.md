@@ -40,7 +40,7 @@
 - [x] JWT login and RBAC (`USER`, `TRIAGE`, `ADMIN`).
 - [x] Support request create/list/detail/update.
 - [x] Request comments create/list.
-- [ ] Attachments are implemented in backend API; frontend + OpenAPI updates are still pending.
+- [x] Attachments are implemented in backend + frontend; OpenAPI updates are still pending.
 - [x] Request delete endpoint is implemented.
 - [x] Comment delete endpoint is implemented.
 - [ ] AI-assist endpoints/UI are not implemented (README mentions them).
@@ -158,22 +158,22 @@
 
 ## Phase 3: Frontend UX and Flows (React)
 
-- [ ] Extend API client/types for request + comment attachment endpoints.
-- [ ] Implement uploader component:
+- [x] Extend API client/types for request + comment attachment endpoints.
+- [x] Implement uploader component:
   - drag-and-drop + file picker fallback
   - validation (size/type/count)
   - per-file progress state
   - retry/cancel
   - clear user-visible error states for S3 upload failures (including CORS/expired URL cases)
-- [ ] Implement request-level flow:
+- [x] Implement request-level flow:
   - ask backend for upload URL
   - direct `PUT` to S3
   - call `confirm`
   - refresh attachment list
-- [ ] Implement comment-level flow using same orchestration.
-- [ ] Render attachment lists in request detail and comment cards.
-- [ ] Implement secure download interaction via backend-issued pre-signed URL.
-- [ ] Add delete controls for request/comment (once backend delete endpoints exist).
+- [x] Implement comment-level flow using same orchestration.
+- [x] Render attachment lists in request detail and comment cards.
+- [x] Implement secure download interaction via backend-issued pre-signed URL.
+- [x] Add delete controls for request/comment (once backend delete endpoints exist).
 
 ---
 
