@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import com.suncorp.securehub.entity.Role;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +30,7 @@ public class UserController {
     @GetMapping
     @Operation(summary = "List users (filtered by role)")
     @PreAuthorize("hasRole('USER') or hasRole('TRIAGE') or hasRole('ADMIN')")
-    public ResponseEntity<List<UserDto>> listUsers(@RequestParam(required = false) String role) {
+    public ResponseEntity<List<UserDto>> listUsers(@RequestParam(required = false) Role.RoleName role) {
         List<User> users;
         if (role != null) {
             users = userRepository.findByRoles_Name(role);

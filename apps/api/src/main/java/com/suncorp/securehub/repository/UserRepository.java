@@ -11,7 +11,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
-    List<User> findByRoles_Name(String roleName);
+    List<User> findByRoles_Name(com.suncorp.securehub.entity.Role.RoleName roleName);
 
     boolean existsByUsername(String username);
 

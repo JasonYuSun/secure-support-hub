@@ -17,6 +17,8 @@ import {
     fetchRequest,
     fetchRequestAttachmentDownloadUrl,
     fetchRequestAttachments,
+    updateRequest,
+    type RequestStatus,
     type Attachment,
     type Comment,
 } from '../api/requests'
@@ -26,6 +28,13 @@ import AttachmentList from '../components/AttachmentList'
 import AssigneeSelect from '../components/AssigneeSelect'
 import AttachmentUploader from '../components/AttachmentUploader'
 import { ArrowLeft, MessageSquare, Send, Trash2 } from 'lucide-react'
+
+const STATUS_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
+    OPEN: ['IN_PROGRESS', 'CLOSED'],
+    IN_PROGRESS: ['RESOLVED', 'CLOSED'],
+    RESOLVED: ['CLOSED'],
+    CLOSED: [],
+}
 
 const ATTACHMENT_ALLOWED_MIME_TYPES = [
     'image/jpeg',
@@ -145,6 +154,18 @@ const RequestDetailPage: React.FC = () => {
         },
     })
 
+    const statusMutation = useMutation({
+        mutationFn: (status: RequestStatus) => updateRequest(reqId, { status }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['request', reqId] })
+            queryClient.invalidateQueries({ queryKey: ['triage-requests'] })
+            queryClient.invalidateQueries({ queryKey: ['requests'] })
+        },
+        onError: (err: unknown) => {
+            setActionError(extractErrorMessage(err, 'Failed to update status'))
+        },
+    })
+
     const requestAttachmentDeleteMutation = useMutation({
         mutationFn: (attachmentId: number) => deleteRequestAttachment(reqId, attachmentId),
         onSuccess: () => {
@@ -258,6 +279,21 @@ const RequestDetailPage: React.FC = () => {
                         <div className="flex items-center gap-3">
                             <span className="text-muted text-sm">#{request.id}</span>
                             <StatusBadge status={request.status} />
+                            {isTriageOrAdmin && STATUS_TRANSITIONS[request.status].length > 0 && (
+                                <div className="flex gap-2" style={{ marginLeft: 8 }}>
+                                    {STATUS_TRANSITIONS[request.status].map(next => (
+                                        <button
+                                            key={next}
+                                            className="btn btn-secondary"
+                                            style={{ padding: '3px 10px', fontSize: 11 }}
+                                            disabled={statusMutation.isPending}
+                                            onClick={() => statusMutation.mutate(next)}
+                                        >
+                                            → {next.replace('_', ' ')}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-xs text-muted">{formatDate(request.createdAt)}</span>
