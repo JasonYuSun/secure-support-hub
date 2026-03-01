@@ -81,7 +81,7 @@
   - `AWS_REGION`
   - optional `AWS_S3_ENDPOINT` for LocalStack/local
 - [x] Export bucket outputs in `infra/terraform/envs/dev/outputs.tf`.
-- [ ] Apply Terraform in `dev` and verify bucket policy/CORS/IAM.
+- [x] Apply Terraform in `dev` and verify bucket policy/CORS/IAM.
 
 ---
 
