@@ -52,3 +52,8 @@ variable "ecs_task_role_arn" {
   type        = string
   description = "ARN of the ECS Task Role"
 }
+
+variable "attachment_bucket_arn" {
+  type        = string
+  description = "ARN of the S3 bucket used for request/comment attachments"
+}

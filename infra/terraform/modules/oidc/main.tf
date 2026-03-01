@@ -128,6 +128,45 @@ resource "aws_iam_policy" "github_actions_deploy" {
         ]
       },
       {
+        # Allow Terraform pipeline to manage the attachments bucket configuration.
+        Effect = "Allow"
+        Action = [
+          "s3:CreateBucket",
+          "s3:DeleteBucket",
+          "s3:GetBucketLocation",
+          "s3:ListBucket",
+          "s3:GetBucketTagging",
+          "s3:PutBucketTagging",
+          "s3:GetBucketPublicAccessBlock",
+          "s3:PutBucketPublicAccessBlock",
+          "s3:DeleteBucketPublicAccessBlock",
+          "s3:GetBucketOwnershipControls",
+          "s3:PutBucketOwnershipControls",
+          "s3:DeleteBucketOwnershipControls",
+          "s3:GetEncryptionConfiguration",
+          "s3:PutEncryptionConfiguration",
+          "s3:GetBucketVersioning",
+          "s3:PutBucketVersioning",
+          "s3:GetLifecycleConfiguration",
+          "s3:PutLifecycleConfiguration",
+          "s3:DeleteBucketLifecycle",
+          "s3:GetBucketCORS",
+          "s3:PutBucketCORS",
+          "s3:DeleteBucketCORS"
+        ]
+        Resource = [var.attachment_bucket_arn]
+      },
+      {
+        # Object-level permissions required when Terraform or automation needs object operations.
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = ["${var.attachment_bucket_arn}/*"]
+      },
+      {
         # MVP ONLY: Broad permissions to allow the single CI role to manage 
         # all infrastructure components defined in Terraform rather than dealing 
         # with bounded IAM boundaries (skipped dedicated TF role for MVP).

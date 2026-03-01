@@ -94,4 +94,5 @@ module "oidc" {
   ecr_web_arn                 = "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/secure-support-hub-web"
   ecs_task_execution_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/securehub-${var.environment}-ecs-execution-role"
   ecs_task_role_arn           = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/securehub-${var.environment}-ecs-task-role"
+  attachment_bucket_arn       = module.s3_attachments.bucket_arn
 }
