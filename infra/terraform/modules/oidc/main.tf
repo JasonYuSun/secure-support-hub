@@ -5,7 +5,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   thumbprint_list = ["1b511abead59c6ce207077c0bf0e0043b1382612"] # Standard GitHub thumbprint, though AWS now usually trusts the CA root
 }
 
-# IAM Role for GitHub Actions
+# IAM Role trust policy for GitHub Actions OIDC
 data "aws_iam_policy_document" "github_actions_assume_role" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -34,15 +34,16 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
   }
 }
 
-resource "aws_iam_role" "github_actions" {
-  name               = "securehub-${var.environment}-github-actions-role"
+# GitHub Actions Deploy Role (CD pipeline, least privilege)
+resource "aws_iam_role" "github_actions_deploy" {
+  name               = "securehub-${var.environment}-github-deploy-role"
   assume_role_policy = data.aws_iam_policy_document.github_actions_assume_role.json
 }
 
-# Policy for letting GitHub Actions deploy to ECS and ECR
+# Policy for CD deploy workflow (ECR + ECS only)
 resource "aws_iam_policy" "github_actions_deploy" {
   name        = "securehub-${var.environment}-github-deploy-policy"
-  description = "Permissions for GitHub Actions to push to ECR and deploy to ECS"
+  description = "Least-privilege permissions for GitHub Actions CD deploy workflow"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -109,8 +110,30 @@ resource "aws_iam_policy" "github_actions_deploy" {
           }
         }
       },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_deploy_attachment" {
+  role       = aws_iam_role.github_actions_deploy.name
+  policy_arn = aws_iam_policy.github_actions_deploy.arn
+}
+
+# GitHub Actions Terraform Role (IaC pipeline, intentionally broader for MVP)
+resource "aws_iam_role" "github_actions_terraform" {
+  name               = "securehub-${var.environment}-github-terraform-role"
+  assume_role_policy = data.aws_iam_policy_document.github_actions_assume_role.json
+}
+
+resource "aws_iam_policy" "github_actions_terraform" {
+  name        = "securehub-${var.environment}-github-terraform-policy"
+  description = "Broad permissions for GitHub Actions Terraform workflow (MVP)"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
       {
-        # Allow Terraform State Management (S3 & DynamoDB)
+        # Terraform backend state and locks
         Effect = "Allow"
         Action = [
           "s3:ListBucket",
@@ -128,57 +151,18 @@ resource "aws_iam_policy" "github_actions_deploy" {
         ]
       },
       {
-        # Allow Terraform pipeline to manage the attachments bucket configuration.
+        # Attachment bucket management including replication and other bucket reads
         Effect = "Allow"
         Action = [
-          "s3:CreateBucket",
-          "s3:DeleteBucket",
-          "s3:GetBucketLocation",
-          "s3:GetBucketAcl",
-          "s3:PutBucketAcl",
-          "s3:ListBucket",
-          "s3:GetBucketWebsite",
-          "s3:GetAccelerateConfiguration",
-          "s3:GetBucketRequestPayment",
-          "s3:GetBucketLogging",
-          "s3:GetBucketTagging",
-          "s3:PutBucketTagging",
-          "s3:GetBucketPolicy",
-          "s3:PutBucketPolicy",
-          "s3:DeleteBucketPolicy",
-          "s3:GetBucketPublicAccessBlock",
-          "s3:PutBucketPublicAccessBlock",
-          "s3:DeleteBucketPublicAccessBlock",
-          "s3:GetBucketOwnershipControls",
-          "s3:PutBucketOwnershipControls",
-          "s3:DeleteBucketOwnershipControls",
-          "s3:GetEncryptionConfiguration",
-          "s3:PutEncryptionConfiguration",
-          "s3:GetBucketVersioning",
-          "s3:PutBucketVersioning",
-          "s3:GetLifecycleConfiguration",
-          "s3:PutLifecycleConfiguration",
-          "s3:DeleteBucketLifecycle",
-          "s3:GetBucketCORS",
-          "s3:PutBucketCORS",
-          "s3:DeleteBucketCORS"
+          "s3:*"
         ]
-        Resource = [var.attachment_bucket_arn]
+        Resource = [
+          var.attachment_bucket_arn,
+          "${var.attachment_bucket_arn}/*"
+        ]
       },
       {
-        # Object-level permissions required when Terraform or automation needs object operations.
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject"
-        ]
-        Resource = ["${var.attachment_bucket_arn}/*"]
-      },
-      {
-        # MVP ONLY: Broad permissions to allow the single CI role to manage 
-        # all infrastructure components defined in Terraform rather than dealing 
-        # with bounded IAM boundaries (skipped dedicated TF role for MVP).
+        # Wider IaC permissions for MVP
         Effect = "Allow"
         Action = [
           "ec2:*",
@@ -190,7 +174,9 @@ resource "aws_iam_policy" "github_actions_deploy" {
           "iam:*",
           "secretsmanager:*",
           "ssm:*",
-          "kms:*"
+          "kms:*",
+          "acm:*",
+          "cloudwatch:*"
         ]
         Resource = "*"
       }
@@ -198,7 +184,7 @@ resource "aws_iam_policy" "github_actions_deploy" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "github_actions_deploy" {
-  role       = aws_iam_role.github_actions.name
-  policy_arn = aws_iam_policy.github_actions_deploy.arn
+resource "aws_iam_role_policy_attachment" "github_actions_terraform_attachment" {
+  role       = aws_iam_role.github_actions_terraform.name
+  policy_arn = aws_iam_policy.github_actions_terraform.arn
 }
