@@ -81,7 +81,7 @@
   - `AWS_REGION`
   - optional `AWS_S3_ENDPOINT` for LocalStack/local
 - [x] Export bucket outputs in `infra/terraform/envs/dev/outputs.tf`.
-- [x] Update GitHub OIDC Terraform/deploy role policy to include attachment-bucket S3 bucket-level read/write config permissions required by Terraform (`GetBucketPublicAccessBlock`, `GetBucketOwnershipControls`, `GetEncryptionConfiguration`, `GetBucketVersioning`, `GetLifecycleConfiguration`, `GetBucketCORS`, and related `Put/Delete` actions).
+- [x] Update GitHub OIDC Terraform/deploy role policy to include attachment-bucket S3 bucket-level read/write config permissions required by Terraform (`GetBucketPolicy`, `GetBucketPublicAccessBlock`, `GetBucketOwnershipControls`, `GetEncryptionConfiguration`, `GetBucketVersioning`, `GetLifecycleConfiguration`, `GetBucketCORS`, and related `Put/Delete` actions).
 - [x] Apply Terraform in `dev` and verify bucket policy/CORS/IAM.
 
 ---
