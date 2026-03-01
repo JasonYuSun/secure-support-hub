@@ -52,6 +52,12 @@ module "alb" {
   alb_security_group_id = module.network.alb_security_group_id
 }
 
+module "s3_attachments" {
+  source               = "../../modules/s3_attachments"
+  environment          = var.environment
+  cors_allowed_origins = ["http://${module.alb.alb_dns_name}"]
+}
+
 module "ecs" {
   source                   = "../../modules/ecs"
   environment              = var.environment
@@ -62,6 +68,8 @@ module "ecs" {
   alb_target_group_api_arn = module.alb.target_group_api_arn
   alb_target_group_web_arn = module.alb.target_group_web_arn
   db_secret_arn            = module.rds.db_setup_secret_arn
+  attachment_bucket_name   = module.s3_attachments.bucket_name
+  attachment_bucket_arn    = module.s3_attachments.bucket_arn
 
   db_host = split(":", module.rds.db_endpoint)[0]
   db_port = 5432

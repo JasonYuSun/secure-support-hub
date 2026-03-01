@@ -38,6 +38,16 @@ variable "db_secret_arn" {
   description = "ARN of the RDS database secret in Secrets Manager"
 }
 
+variable "attachment_bucket_name" {
+  type        = string
+  description = "S3 bucket name for support request attachments"
+}
+
+variable "attachment_bucket_arn" {
+  type        = string
+  description = "S3 bucket ARN for support request attachments"
+}
+
 variable "db_host" {
   type        = string
   description = "RDS Endpoint Host"
@@ -67,4 +77,10 @@ variable "api_cors_origin" {
   type        = string
   description = "Allowed CORS origin for the API"
   default     = "*" # Can be restricted when ALB DNS is known
+}
+
+variable "aws_s3_endpoint" {
+  type        = string
+  description = "Optional S3 endpoint override (for LocalStack/local development)"
+  default     = ""
 }

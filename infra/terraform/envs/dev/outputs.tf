@@ -17,3 +17,13 @@ output "github_actions_role_arn" {
   description = "ARN of the IAM role for GitHub Actions to assume"
   value       = module.oidc.github_actions_role_arn
 }
+
+output "attachments_bucket_name" {
+  description = "Name of the S3 bucket for request/comment attachments"
+  value       = module.s3_attachments.bucket_name
+}
+
+output "attachments_bucket_arn" {
+  description = "ARN of the S3 bucket for request/comment attachments"
+  value       = module.s3_attachments.bucket_arn
+}

@@ -20,6 +20,19 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   }
 }
 
+locals {
+  api_container_environment = concat([
+    { name = "SPRING_PROFILES_ACTIVE", value = "prod" },
+    { name = "CORS_ALLOWED_ORIGINS", value = var.api_cors_origin },
+    { name = "JWT_EXPIRATION_MS", value = "86400000" },
+    { name = "DB_URL", value = "jdbc:postgresql://${var.db_host}:${var.db_port}/${var.db_name}" },
+    { name = "AWS_REGION", value = var.aws_region },
+    { name = "AWS_S3_ATTACHMENT_BUCKET_NAME", value = var.attachment_bucket_name }
+    ],
+    var.aws_s3_endpoint != "" ? [{ name = "AWS_S3_ENDPOINT", value = var.aws_s3_endpoint }] : []
+  )
+}
+
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "api" {
   name              = "/ecs/securehub-${var.environment}-api"
@@ -89,6 +102,40 @@ resource "aws_iam_role" "ecs_task_role" {
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_trust_policy.json
 }
 
+resource "aws_iam_policy" "ecs_attachment_s3_policy" {
+  name        = "securehub-${var.environment}-ecs-attachments-s3-policy"
+  description = "Policy for ECS task role to access the attachments S3 bucket"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowListAttachmentBucket"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket"
+        ]
+        Resource = [var.attachment_bucket_arn]
+      },
+      {
+        Sid    = "AllowAttachmentObjectCrud"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = ["${var.attachment_bucket_arn}/*"]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_attachment_s3_policy" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ecs_attachment_s3_policy.arn
+}
+
 # JWT Secret stored in SSM
 resource "random_password" "jwt_secret" {
   length  = 64
@@ -127,12 +174,7 @@ resource "aws_ecs_task_definition" "api" {
       protocol      = "tcp"
     }]
 
-    environment = [
-      { name = "SPRING_PROFILES_ACTIVE", value = "prod" },
-      { name = "CORS_ALLOWED_ORIGINS", value = var.api_cors_origin },
-      { name = "JWT_EXPIRATION_MS", value = "86400000" },
-      { name = "DB_URL", value = "jdbc:postgresql://${var.db_host}:${var.db_port}/${var.db_name}" }
-    ]
+    environment = local.api_container_environment
 
     secrets = [
       { name = "DB_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },

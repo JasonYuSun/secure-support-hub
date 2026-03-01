@@ -56,31 +56,31 @@
 - [ ] `docs/api/openapi.yaml` does not fully match runtime DTO shapes.
 - [ ] README roadmap/feature status has attachment phase inconsistency (`Phase 2` vs `Phase 3`).
 - [ ] README documents AI endpoints that are not implemented.
-- [ ] Deployment runbook is aligned with Fargate-only runtime operations.
+- [x] Deployment runbook is aligned with Fargate-only runtime operations.
 
 ---
 
 ## Phase 1: Terraform and AWS Foundation for Attachments
 
-- [ ] Create attachment storage module (for example `infra/terraform/modules/s3_attachments`).
-- [ ] Create S3 bucket with:
+- [x] Create attachment storage module (for example `infra/terraform/modules/s3_attachments`).
+- [x] Create S3 bucket with:
   - block public access (all `true`)
   - default encryption (SSE-S3 for MVP; KMS optional follow-up)
   - versioning enabled
   - bucket owner enforced object ownership
-- [ ] Add lifecycle rules (abort incomplete multipart uploads, optional retention for non-current versions).
-- [ ] Configure CORS for frontend origin and required methods/headers only.
-- [ ] Update ECS task role IAM permissions (least privilege):
+- [x] Add lifecycle rules (abort incomplete multipart uploads, optional retention for non-current versions).
+- [x] Configure CORS for frontend origin and required methods/headers only.
+- [x] Update ECS task role IAM permissions (least privilege):
   - `s3:PutObject`
   - `s3:GetObject`
   - `s3:DeleteObject`
   - `s3:ListBucket` (only if required by implementation)
-- [ ] Ensure all S3 IAM permissions are strictly resource-scoped to the attachment bucket ARN/prefix (no wildcard `*` resource grants).
-- [ ] Wire bucket env vars into API task definition:
+- [x] Ensure all S3 IAM permissions are strictly resource-scoped to the attachment bucket ARN/prefix (no wildcard `*` resource grants).
+- [x] Wire bucket env vars into API task definition:
   - `AWS_S3_ATTACHMENT_BUCKET_NAME`
   - `AWS_REGION`
   - optional `AWS_S3_ENDPOINT` for LocalStack/local
-- [ ] Export bucket outputs in `infra/terraform/envs/dev/outputs.tf`.
+- [x] Export bucket outputs in `infra/terraform/envs/dev/outputs.tf`.
 - [ ] Apply Terraform in `dev` and verify bucket policy/CORS/IAM.
 
 ---
