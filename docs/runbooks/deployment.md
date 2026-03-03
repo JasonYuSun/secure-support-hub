@@ -188,3 +188,20 @@ Notes:
 - Canonical MVP model ID: `anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6).
 - For reliable cost protection, keep the deny policy attached when demo environment is idle.
 - Deleting model agreement alone may not permanently block future model usage if runtime can invoke Bedrock.
+
+---
+
+## 7. One-Off ECS Task Definition Sync (When New Env Vars Don't Propagate)
+
+If you temporarily remove `ignore_changes = [container_definitions]` from
+`infra/terraform/modules/ecs/main.tf` to force a task-definition refresh, restore it immediately after the sync.
+
+Why:
+- This repo's CD workflow updates image tags directly in ECS task definitions.
+- Keeping `ignore_changes` removed can make Terraform overwrite CD-managed image revisions on future applies.
+
+Recommended flow:
+1. Temporarily remove the two task-definition `ignore_changes` blocks.
+2. Run a one-off `terraform apply` in `infra/terraform/envs/dev`.
+3. Confirm ECS task definition has the expected env vars.
+4. Re-add the `ignore_changes` blocks and apply again (or keep as pending local change until next infra commit).
