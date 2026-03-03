@@ -267,6 +267,7 @@ The API follows consistent patterns:
 | ------- | -------------------------------- | --------------------------------- |
 | `POST`  | `/api/v1/auth/login`             | Authenticate and receive JWT      |
 | `GET`   | `/api/v1/me`                     | Current user profile + roles      |
+| `GET`   | `/api/v1/users`                  | List users (optional role filter) |
 | `GET`   | `/api/v1/admin/users`            | List users (ADMIN only)           |
 | `GET`   | `/api/v1/admin/users/{id}`       | Get user details (ADMIN only)     |
 | `PATCH` | `/api/v1/admin/users/{id}/roles` | Replace user roles (ADMIN only)   |
