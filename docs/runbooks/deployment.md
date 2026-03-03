@@ -2,7 +2,7 @@
 
 **Service**: Secure Support Hub  
 **Owner**: Engineering Team  
-**Last Updated**: 2026-02-27
+**Last Updated**: 2026-03-03
 
 ---
 
@@ -158,7 +158,7 @@ Rotating the JWT secret invalidates all active user sessions.
 
 ## 6. Bedrock Model Access Toggle (Dev/Demo Cost Control)
 
-Use these scripts when AI Assist is enabled:
+Use these scripts as ad hoc operator actions when AI Assist is enabled (not as an always-on CD pipeline step):
 
 ```bash
 # Enable model access (idempotent workflow)

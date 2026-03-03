@@ -34,10 +34,12 @@
 ## Current Snapshot (Codebase Reality)
 
 - [x] Request/comment/attachment flows are implemented and passing E2E in current batch (`docs/ai-e2e/*`).
-- [x] AI Assist is still not implemented in backend, frontend, and OpenAPI.
+- [x] AI Assist core actions (`summarize` / `suggest-tags` / `draft-response`) are still not implemented in backend and frontend.
+- [x] Tagging foundation is implemented (DB schema, backend APIs, frontend panel, OpenAPI, and E2E coverage).
 - [x] README includes AI Assist in scope, but marks it as future phase.
 - [x] Attachment metadata and S3 private object flow are available for building AI context from files.
 - [x] Terraform/ECS currently has no AI-specific runtime config or Bedrock invoke permissions in task role.
+- [x] Bedrock model-access toggle scripts exist in repo (`scripts/bedrock/enable-model-access.sh`, `scripts/bedrock/disable-model-access.sh`) and are documented in deployment runbook for ad hoc usage.
 
 ---
 
@@ -66,41 +68,41 @@
 
 ### Design goals
 
-- [ ] Keep tag taxonomy globally reusable across requests.
-- [ ] Separate "dictionary management" from "request tagging" permissions.
-- [ ] Guarantee deterministic RBAC:
+- [x] Keep tag taxonomy globally reusable across requests.
+- [x] Separate "dictionary management" from "request tagging" permissions.
+- [x] Guarantee deterministic RBAC:
   - `TRIAGE`/`ADMIN`: add/delete tags in dictionary
   - all authenticated roles with request access (`USER`, `TRIAGE`, `ADMIN`): apply/unapply existing tags on request
 
 ### Data model design
 
-- [ ] `tags` table:
+- [x] `tags` table:
   - `id`
   - `name` (unique, case-insensitive normalized key)
   - `created_by`
   - `created_at`
   - optional `deleted_at` for soft-delete
-- [ ] `request_tags` table:
+- [x] `request_tags` table:
   - `request_id`
   - `tag_id`
   - `applied_by`
   - `applied_at`
   - unique constraint on (`request_id`, `tag_id`)
-- [ ] Define delete semantics for dictionary tags:
+- [x] Define delete semantics for dictionary tags:
   - preferred MVP path: soft-delete dictionary tag and keep historical request_tag records
   - if hard-delete path is chosen, block delete when tag is in use (`409`) and require unapply first
 
 ### API contract design
 
-- [ ] Tag dictionary endpoints:
+- [x] Tag dictionary endpoints:
   - `GET /api/v1/tags` (authenticated users)
   - `POST /api/v1/tags` (`TRIAGE`/`ADMIN` only)
   - `DELETE /api/v1/tags/{tagId}` (`TRIAGE`/`ADMIN` only)
-- [ ] Request tagging endpoints:
+- [x] Request tagging endpoints:
   - `GET /api/v1/requests/{id}/tags` (roles with request read access)
   - `POST /api/v1/requests/{id}/tags/{tagId}` (roles with request access)
   - `DELETE /api/v1/requests/{id}/tags/{tagId}` (roles with request access)
-- [ ] AI integration contract:
+- [x] AI integration contract:
   - `suggest-tags` returns existing tag IDs when confidently matched; otherwise returns candidate names with `isNew=true`
   - creating new dictionary tags from AI suggestions remains explicit user action (never auto-create)
 
@@ -110,15 +112,15 @@
 
 Note:
 - Treat Bedrock setup as **IaC-first**. Everything Terraform can manage must be in Terraform.
-- For account-level model subscription/agreement steps that are not represented as stable Terraform resources, use scripted automation (CLI/SDK preflight) committed in repo and invoked by pipeline.
+- For account-level model subscription/agreement steps that are not represented as stable Terraform resources, use scripted automation (CLI/SDK preflight) committed in repo and executed ad hoc by maintainers (or as explicit one-off bootstrap job), not manual console clicks.
 
 ### 0.1 AWS account and region prerequisites
 
-- [ ] Confirm target runtime region for AI is `ap-southeast-2` (same as current ECS runtime), or explicitly document cross-region inference strategy.
-- [ ] Add scripted Bedrock model-access bootstrap (CLI/SDK) under repo automation (`scripts/bedrock/enable-model-access.sh`), rather than relying on manual console clicks.
-- [ ] Ensure bootstrap handles provider-specific one-time prerequisites (for example Anthropic use-case submission) in an auditable way.
-- [ ] Ensure bootstrap handles third-party model agreement/subscription flow where required.
-- [ ] Add scripted Bedrock cost guard toggle for demo idle windows (`scripts/bedrock/disable-model-access.sh`) with runtime deny policy option.
+- [x] Confirm target runtime region for AI is `ap-southeast-2` (same as current ECS runtime), or explicitly document cross-region inference strategy.
+- [x] Add scripted Bedrock model-access bootstrap (CLI/SDK) under repo automation (`scripts/bedrock/enable-model-access.sh`), rather than relying on manual console clicks.
+- [x] Ensure bootstrap handles provider-specific one-time prerequisites (for example Anthropic use-case submission) in an auditable way.
+- [x] Ensure bootstrap handles third-party model agreement/subscription flow where required.
+- [x] Add scripted Bedrock cost guard toggle for demo idle windows (`scripts/bedrock/disable-model-access.sh`) with runtime deny policy option.
 - [ ] Lock model choice for MVP (for example Claude 3.5 Sonnet on Bedrock) and record canonical `modelId` used by backend config.
 
 ### 0.2 Terraform changes for ECS runtime
@@ -141,7 +143,7 @@ Note:
 ### 0.3 Apply and verify
 
 - [ ] Run `terraform plan` and `terraform apply` in `infra/terraform/envs/dev`.
-- [ ] Run Bedrock model-access bootstrap automation (`scripts/bedrock/enable-model-access.sh`) in dev environment pipeline (or documented one-time infra bootstrap command) and capture output artifact.
+- [ ] Run Bedrock model-access bootstrap automation (`scripts/bedrock/enable-model-access.sh`) as a documented ad hoc infra bootstrap command and capture output artifact.
 - [ ] Verify applied ECS task definition contains AI env vars and no plaintext secrets.
 - [ ] Verify running ECS API task can call Bedrock model successfully with IAM role credentials (no static access keys).
 
@@ -156,7 +158,7 @@ Note:
   - `POST /api/v1/requests/{id}/ai/suggest-tags`
   - `POST /api/v1/requests/{id}/ai/draft-response`
 - [ ] Ensure each action has its own request/response DTO and validation (no overloaded "do everything" endpoint).
-- [ ] Finalize tagging API contracts from "Tagging Feature Design" and include them in OpenAPI-first schema review before implementation.
+- [x] Finalize tagging API contracts from "Tagging Feature Design" and include them in OpenAPI-first schema review before implementation.
 - [ ] Add idempotency strategy for repeated clicks (for example client idempotency key or short dedupe window on same input hash).
 - [ ] Define consistent AI error codes in global API error model (`AI_PROVIDER_ERROR`, `AI_TIMEOUT`, `AI_CONTEXT_TOO_LARGE`, etc.).
 
@@ -202,11 +204,11 @@ Note:
 
 ### 2.2 Request tag persistence (MVP required)
 
-- [ ] Implement `tags` and `request_tags` schema per "Tagging Feature Design".
-- [ ] Implement tag dictionary CRUD subset (list/create/delete) with `TRIAGE`/`ADMIN` RBAC for write operations.
-- [ ] Implement request tag apply/unapply/list endpoints for all roles with request access.
-- [ ] Enforce normalized tag uniqueness and duplicate apply idempotency.
-- [ ] Implement chosen dictionary-delete semantics (`soft-delete` preferred, or `409 in-use` block).
+- [x] Implement `tags` and `request_tags` schema per "Tagging Feature Design".
+- [x] Implement tag dictionary CRUD subset (list/create/delete) with `TRIAGE`/`ADMIN` RBAC for write operations.
+- [x] Implement request tag apply/unapply/list endpoints for all roles with request access.
+- [x] Enforce normalized tag uniqueness and duplicate apply idempotency.
+- [x] Implement chosen dictionary-delete semantics (`soft-delete` preferred, or `409 in-use` block).
 
 ### 2.3 Attachment extraction traceability
 
@@ -260,7 +262,7 @@ Note:
   - `USER` can invoke AI only on own requests
   - `TRIAGE`/`ADMIN` can invoke on any request
 - [ ] Add negative-path tests for unauthorized AI access (`403`).
-- [ ] Enforce tagging RBAC matrix:
+- [x] Enforce tagging RBAC matrix:
   - `TRIAGE`/`ADMIN` can create/delete dictionary tags
   - request-access users can apply/unapply tags on that request only
   - users without request access cannot read/apply tags for that request
@@ -298,7 +300,7 @@ Note:
 
 - [ ] Summary action: render concise summary block with copy-to-clipboard.
 - [ ] Suggest tags action: render chips/list and allow "apply selected tags" flow.
-- [ ] Add lightweight dictionary management UI for `TRIAGE`/`ADMIN` (create/delete tags).
+- [x] Add lightweight dictionary management UI for `TRIAGE`/`ADMIN` (create/delete tags).
 - [ ] Draft response action: provide `Use Draft` action that fills comment textarea only.
 - [ ] Confirm draft is editable before send and never auto-posts comment.
 
@@ -323,7 +325,7 @@ Note:
   - text/csv snippet extraction path
   - PDF/image multimodal byte path
   - unsupported/failed attachment handling with partial-context result
-- [ ] Tag domain tests for create/delete/apply/unapply/list behavior, duplicate handling, and delete semantics (`soft-delete` or `409 in-use`).
+- [x] Tag domain tests for create/delete/apply/unapply/list behavior, duplicate handling, and delete semantics (`soft-delete` or `409 in-use`).
 
 ### 6.2 Frontend tests
 
@@ -352,7 +354,7 @@ Note:
   - document 3-action UX, tag apply flow, and draft-not-auto-send behavior
   - document provider strategy (`local=stub`, `dev=bedrock`)
 - [ ] Update `docs/runbooks/deployment.md` with AI env vars and Bedrock verification steps.
-- [ ] Update deployment runbook with scripted model-access bootstrap command(s) and expected success checks.
+- [x] Update deployment runbook with scripted model-access bootstrap command(s) and expected success checks.
 - [ ] Update `docs/runbooks/incident-response.md` with AI failure triage steps (timeout/provider/model misconfig).
 - [ ] Add AI-specific journeys into `docs/ai-e2e/user-journeys.md` and include in standard regression batch.
 
@@ -374,9 +376,9 @@ Note:
 
 - [ ] Bedrock account/model access is enabled for the target region and verified from running ECS task.
 - [ ] Terraform-managed ECS runtime includes AI env configuration and least-privilege Bedrock invoke permissions.
-- [ ] Bedrock model-access/bootstrap is automated via repo-managed scripts/pipeline steps (not manual console-only operation).
+- [x] Bedrock model-access/bootstrap is automated via repo-managed scripts/ad hoc commands (not manual console-only operation).
 - [ ] All three AI actions work end-to-end from request detail page.
-- [ ] Tagging feature exists and applied tags persist (backend + frontend + API contract).
+- [x] Tagging feature exists and applied tags persist (backend + frontend + API contract).
 - [ ] AI context includes request, comments, and parsed attachment content.
 - [ ] RBAC rules are enforced in backend and reflected in frontend.
 - [ ] AI outputs are persisted with traceable metadata in database.
