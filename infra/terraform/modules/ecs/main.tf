@@ -157,8 +157,8 @@ resource "aws_iam_policy" "ecs_bedrock_policy" {
           "bedrock:ConverseStream"
         ]
         Resource = [
-          local.bedrock_model_resource_arn,
-          "arn:aws:bedrock:${var.aws_region}:*:inference-profile/${var.ai_bedrock_model_id}"
+          "arn:aws:bedrock:*::foundation-model/anthropic.claude-*",
+          "arn:aws:bedrock:${var.aws_region}:*:inference-profile/*"
         ]
       }
     ]
