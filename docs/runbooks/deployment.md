@@ -153,3 +153,28 @@ Rotating the JWT secret invalidates all active user sessions.
 2. Update `JWT_SECRET` in the deployment environment (AWS Secrets Manager / SSM Parameter Store, or local `.env`)
 3. Restart the API ECS service or local container
 4. Inform users: all active sessions will be terminated; users must log in again
+
+---
+
+## 6. Bedrock Model Access Toggle (Dev/Demo Cost Control)
+
+Use these scripts when AI Assist is enabled:
+
+```bash
+# Enable model access (idempotent workflow)
+scripts/bedrock/enable-model-access.sh \
+  --model-id <bedrock-model-id> \
+  --region ap-southeast-2 \
+  --task-role-name securehub-dev-ecs-task-role \
+  --use-case-file scripts/bedrock/anthropic-use-case.sample.json
+
+# Disable model access and attach runtime deny policy for cost guard
+scripts/bedrock/disable-model-access.sh \
+  --model-id <bedrock-model-id> \
+  --region ap-southeast-2 \
+  --task-role-name securehub-dev-ecs-task-role
+```
+
+Notes:
+- For reliable cost protection, keep the deny policy attached when demo environment is idle.
+- Deleting model agreement alone may not permanently block future model usage if runtime can invoke Bedrock.
