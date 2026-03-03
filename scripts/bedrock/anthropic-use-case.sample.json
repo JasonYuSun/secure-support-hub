@@ -1,0 +1,14 @@
+{
+  "companyName": "Secure Support Hub Demo",
+  "companyWebsite": "https://example.com",
+  "intendedUsers": "software_engineers",
+  "industryOption": "technology",
+  "otherIndustryOption": "",
+  "useCases": [
+    "content_generation",
+    "summarization",
+    "classification"
+  ],
+  "otherUseCase": "",
+  "isNotStudent": true
+}
