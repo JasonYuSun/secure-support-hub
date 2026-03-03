@@ -268,6 +268,32 @@ components:
           type: string
           format: date-time
 
+    TagDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: billing
+        createdBy:
+          $ref: '#/components/schemas/UserDto'
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateTagDto:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: billing
+
+
 paths:
   /api/v1/auth/login:
     post:
@@ -895,3 +921,171 @@ paths:
       responses:
         '204':
           description: Attachment deleted
+
+  /api/v1/tags:
+    get:
+      summary: List all active tags in the tag dictionary
+      tags: [Tags]
+      responses:
+        '200':
+          description: List of active tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagDto'
+        '403':
+          description: Not authenticated
+
+    post:
+      summary: Create a new tag in the dictionary (TRIAGE/ADMIN only)
+      tags: [Tags]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagDto'
+      responses:
+        '201':
+          description: Tag created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDto'
+        '400':
+          description: Validation error or duplicate tag name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient role (requires TRIAGE or ADMIN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tags/{tagId}:
+    delete:
+      summary: Soft-delete a tag from the dictionary (TRIAGE/ADMIN only)
+      tags: [Tags]
+      parameters:
+        - name: tagId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Tag soft-deleted
+        '403':
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/requests/{requestId}/tags:
+    get:
+      summary: List tags applied to a request
+      tags: [Request Tags]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of applied tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagDto'
+        '403':
+          description: No access to this request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Request not found
+
+  /api/v1/requests/{requestId}/tags/{tagId}:
+    post:
+      summary: Apply a tag to a request (any authenticated role with request access)
+      tags: [Request Tags]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: tagId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '201':
+          description: Tag applied (or already applied — idempotent)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDto'
+        '400':
+          description: Tag does not exist or has been soft-deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No access to this request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Request not found
+
+    delete:
+      summary: Unapply a tag from a request (any authenticated role with request access)
+      tags: [Request Tags]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: tagId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Tag unapplied (no-op if not applied)
+        '403':
+          description: No access to this request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Request not found

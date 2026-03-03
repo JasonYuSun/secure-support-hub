@@ -40,6 +40,14 @@ type MockAttachment = {
     createdAt: string
 }
 
+type MockTag = {
+    id: number
+    name: string
+    createdBy: MockUser
+    createdAt: string
+    deletedAt: string | null
+}
+
 const USERS: Record<string, MockUser> = {
     user: { id: 1, username: 'user', email: 'user@example.com', roles: ['USER'] },
     triage: { id: 2, username: 'triage', email: 'triage@example.com', roles: ['USER', 'TRIAGE'] },
@@ -64,18 +72,23 @@ export type MockApiController = {
     seedRequest: (params: { title: string; description: string; owner?: MockUser }) => number
     seedRequestAttachments: (requestId: number, count: number) => void
     setNextPresignedPutFailureStatus: (status: number | null) => void
+    seedTag: (name: string, owner?: MockUser) => number
 }
 
 export async function setupMockApi(page: Page, options?: SetupOptions): Promise<MockApiController> {
     let nextRequestId = 100
     let nextCommentId = 500
     let nextAttachmentId = 900
+    let nextTagId = 200
     let failNextPresignedPutStatus = options?.failNextPresignedPutStatus ?? null
 
     const requests = new Map<number, MockRequest>()
     const commentsByRequest = new Map<number, MockComment[]>()
     const attachmentsByRequest = new Map<number, MockAttachment[]>()
     const attachmentsByComment = new Map<number, MockAttachment[]>()
+    const tags = new Map<number, MockTag>()
+    // requestTags: key = `${requestId}:${tagId}`
+    const requestTags = new Map<string, { requestId: number; tagId: number; appliedBy: MockUser; appliedAt: string }>()
 
     const nowIso = () => new Date().toISOString()
 
@@ -146,6 +159,25 @@ export async function setupMockApi(page: Page, options?: SetupOptions): Promise<
         attachmentsByRequest.set(requestId, arr)
     }
 
+    const seedTag = (name: string, owner: MockUser = USERS.triage): number => {
+        const id = nextTagId++
+        tags.set(id, {
+            id,
+            name,
+            createdBy: owner,
+            createdAt: nowIso(),
+            deletedAt: null,
+        })
+        return id
+    }
+
+    const tagToDto = (tag: MockTag) => ({
+        id: tag.id,
+        name: tag.name,
+        createdBy: { id: tag.createdBy.id, username: tag.createdBy.username, email: tag.createdBy.email, roles: tag.createdBy.roles },
+        createdAt: tag.createdAt,
+    })
+
     await page.route('**/api/v1/**', async (route) => {
         const request = route.request()
         const url = new URL(request.url())
@@ -181,6 +213,12 @@ export async function setupMockApi(page: Page, options?: SetupOptions): Promise<
             const requestId = Number(seg[1])
             const req = requests.get(requestId)
             if (!req) return json(route, { code: 'NOT_FOUND', message: 'SupportRequest not found' }, 404)
+            // Mirror real backend: non-owner non-triage users get 403
+            const user = getActiveUserFromAuthHeader(await request.headerValue('authorization'))
+            const isTriage = user.roles.includes('TRIAGE') || user.roles.includes('ADMIN')
+            if (!isTriage && req.createdBy.id !== user.id) {
+                return json(route, { code: 'FORBIDDEN', message: 'Access denied' }, 403)
+            }
             return json(route, req)
         }
 
@@ -193,6 +231,64 @@ export async function setupMockApi(page: Page, options?: SetupOptions): Promise<
                 const found = Array.from(commentsByRequest.values()).flat().find((c) => c.id === commentId)
                 if (!found) attachmentsByComment.delete(commentId)
             }
+            return route.fulfill({ status: 204 })
+        }
+
+        // Request tags — GET /requests/{id}/tags
+        if (seg[0] === 'requests' && seg[2] === 'tags' && seg.length === 3 && method === 'GET') {
+            const requestId = Number(seg[1])
+            const user = getActiveUserFromAuthHeader(await request.headerValue('authorization'))
+            const req = requests.get(requestId)
+            if (!req) return json(route, { code: 'NOT_FOUND', message: 'SupportRequest not found' }, 404)
+            // Access check: owner or triage/admin
+            const isTriage = user.roles.includes('TRIAGE') || user.roles.includes('ADMIN')
+            if (!isTriage && req.createdBy.id !== user.id) {
+                return json(route, { code: 'FORBIDDEN', message: 'Access denied' }, 403)
+            }
+            const result = Array.from(requestTags.values())
+                .filter((rt) => rt.requestId === requestId)
+                .map((rt) => {
+                    const tag = tags.get(rt.tagId)
+                    return tag && !tag.deletedAt ? tagToDto(tag) : null
+                })
+                .filter(Boolean)
+            return json(route, result)
+        }
+
+        // Request tags — POST /requests/{id}/tags/{tagId}
+        if (seg[0] === 'requests' && seg[2] === 'tags' && seg.length === 4 && method === 'POST') {
+            const requestId = Number(seg[1])
+            const tagId = Number(seg[3])
+            const user = getActiveUserFromAuthHeader(await request.headerValue('authorization'))
+            const req = requests.get(requestId)
+            if (!req) return json(route, { code: 'NOT_FOUND', message: 'SupportRequest not found' }, 404)
+            const isTriage = user.roles.includes('TRIAGE') || user.roles.includes('ADMIN')
+            if (!isTriage && req.createdBy.id !== user.id) {
+                return json(route, { code: 'FORBIDDEN', message: 'Access denied' }, 403)
+            }
+            const tag = tags.get(tagId)
+            if (!tag || tag.deletedAt) {
+                return json(route, { code: 'BAD_REQUEST', message: 'Tag does not exist or has been deleted' }, 400)
+            }
+            const key = `${requestId}:${tagId}`
+            if (!requestTags.has(key)) {
+                requestTags.set(key, { requestId, tagId, appliedBy: user, appliedAt: nowIso() })
+            }
+            return json(route, tagToDto(tag), 201)
+        }
+
+        // Request tags — DELETE /requests/{id}/tags/{tagId}
+        if (seg[0] === 'requests' && seg[2] === 'tags' && seg.length === 4 && method === 'DELETE') {
+            const requestId = Number(seg[1])
+            const tagId = Number(seg[3])
+            const user = getActiveUserFromAuthHeader(await request.headerValue('authorization'))
+            const req = requests.get(requestId)
+            if (!req) return json(route, { code: 'NOT_FOUND', message: 'SupportRequest not found' }, 404)
+            const isTriage = user.roles.includes('TRIAGE') || user.roles.includes('ADMIN')
+            if (!isTriage && req.createdBy.id !== user.id) {
+                return json(route, { code: 'FORBIDDEN', message: 'Access denied' }, 403)
+            }
+            requestTags.delete(`${requestId}:${tagId}`)
             return route.fulfill({ status: 204 })
         }
 
@@ -358,6 +454,53 @@ export async function setupMockApi(page: Page, options?: SetupOptions): Promise<
             return route.fulfill({ status: 204 })
         }
 
+        // Tag dictionary — GET /tags
+        if (seg[0] === 'tags' && seg.length === 1 && method === 'GET') {
+            const activeTags = Array.from(tags.values())
+                .filter((t) => !t.deletedAt)
+                .map(tagToDto)
+            return json(route, activeTags)
+        }
+
+        // Tag dictionary — POST /tags
+        if (seg[0] === 'tags' && seg.length === 1 && method === 'POST') {
+            const user = getActiveUserFromAuthHeader(await request.headerValue('authorization'))
+            const isTriage = user.roles.includes('TRIAGE') || user.roles.includes('ADMIN')
+            if (!isTriage) {
+                return json(route, { code: 'FORBIDDEN', message: 'Only TRIAGE or ADMIN roles can create tags' }, 403)
+            }
+            const body = request.postDataJSON() as { name: string }
+            const name = body.name?.trim()
+            if (!name) {
+                return json(route, { code: 'VALIDATION_ERROR', message: 'Tag name must not be blank' }, 400)
+            }
+            // Check duplicate (case-insensitive)
+            const duplicate = Array.from(tags.values()).find(
+                (t) => !t.deletedAt && t.name.toLowerCase() === name.toLowerCase()
+            )
+            if (duplicate) {
+                return json(route, { code: 'BAD_REQUEST', message: `Tag '${name}' already exists` }, 400)
+            }
+            const id = seedTag(name, user)
+            return json(route, tagToDto(tags.get(id)!), 201)
+        }
+
+        // Tag dictionary — DELETE /tags/{tagId}
+        if (seg[0] === 'tags' && seg.length === 2 && method === 'DELETE') {
+            const user = getActiveUserFromAuthHeader(await request.headerValue('authorization'))
+            const isTriage = user.roles.includes('TRIAGE') || user.roles.includes('ADMIN')
+            if (!isTriage) {
+                return json(route, { code: 'FORBIDDEN', message: 'Only TRIAGE or ADMIN roles can delete tags' }, 403)
+            }
+            const tagId = Number(seg[1])
+            const tag = tags.get(tagId)
+            if (!tag || tag.deletedAt) {
+                return json(route, { code: 'NOT_FOUND', message: 'Tag not found' }, 404)
+            }
+            tag.deletedAt = nowIso()
+            return route.fulfill({ status: 204 })
+        }
+
         return json(route, { code: 'NOT_FOUND', message: `No mock route for ${method} ${url.pathname}` }, 404)
     })
 
@@ -384,5 +527,7 @@ export async function setupMockApi(page: Page, options?: SetupOptions): Promise<
         setNextPresignedPutFailureStatus: (status: number | null) => {
             failNextPresignedPutStatus = status
         },
+        seedTag,
     }
 }
+

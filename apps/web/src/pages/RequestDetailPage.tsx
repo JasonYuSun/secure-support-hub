@@ -27,6 +27,7 @@ import StatusBadge from '../components/StatusBadge'
 import AttachmentList from '../components/AttachmentList'
 import AssigneeSelect from '../components/AssigneeSelect'
 import AttachmentUploader from '../components/AttachmentUploader'
+import TagPanel from '../components/TagPanel'
 import { ArrowLeft, MessageSquare, Send, Trash2 } from 'lucide-react'
 
 const STATUS_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
@@ -371,6 +372,12 @@ const RequestDetailPage: React.FC = () => {
                         )}
                     </div>
                 </div>
+
+                <TagPanel
+                    requestId={reqId}
+                    canManage={canManageRequestThread}
+                    isTriageOrAdmin={isTriageOrAdmin}
+                />
 
                 <div className="card">
                     <div className="flex items-center gap-2" style={{ marginBottom: 20 }}>
