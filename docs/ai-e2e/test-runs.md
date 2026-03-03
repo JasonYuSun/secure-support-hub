@@ -21,9 +21,9 @@ Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws
 | J-011      | RUN-BATCH-20260301-01-J-011 | PASSED        | 2026-03-01T23:10:00+11:00 |
 | J-012      | RUN-BATCH-20260301-01-J-012 | PASSED        | 2026-03-01T23:15:00+11:00 |
 | J-013      | RUN-BATCH-20260301-01-J-013 | PASSED        | 2026-03-01T20:15:00+11:00 |
-| J-014      | RUN-BATCH-20260301-01-J-014 | PASSED        | 2026-03-03T18:00:00+11:00 |
-| J-015      | RUN-BATCH-20260301-01-J-015 | PASSED        | 2026-03-03T18:00:00+11:00 |
-| J-016      | RUN-BATCH-20260301-01-J-016 | PASSED        | 2026-03-03T18:00:00+11:00 |
+| J-014      | RUN-BATCH-20260301-01-J-014 | PASSED        | 2026-03-04T01:50:00+11:00 |
+| J-015      | RUN-BATCH-20260301-01-J-015 | PASSED        | 2026-03-04T01:50:00+11:00 |
+| J-016      | RUN-BATCH-20260301-01-J-016 | PASSED        | 2026-03-04T01:50:00+11:00 |
 
 ## Run Records
 
@@ -213,40 +213,40 @@ Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws
 - Batch ID: BATCH-20260301-01
 - Run ID: RUN-BATCH-20260301-01-J-014
 - Journey ID: J-014
-- Timestamp: 2026-03-03T18:00:00+11:00
-- Environment URL: http://localhost:5173
+- Timestamp: 2026-03-04T01:50:00+11:00
+- Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws.com
 - Role: USER
 - Result: PASSED
 - Steps executed: Login as USER -> open request detail -> click Summarize Request -> verify output.
-- Expected: AI Summary is generated and displayed.
-- Actual: Summary generated and displayed successfully.
-- Evidence: Playwright matched exact stub response.
-- Notes: Validated via automated E2E test.
+- Expected: AI Summary is generated and displayed without error.
+- Actual: Summary generated and displayed successfully using the deployed AWS Bedrock backend.
+- Evidence: Playwright/browser subagent recorded successful API call and UI rendering.
+- Notes: Live Bedrock integration validated on remote environment.
 
 ### RUN-BATCH-20260301-01-J-015
 - Batch ID: BATCH-20260301-01
 - Run ID: RUN-BATCH-20260301-01-J-015
 - Journey ID: J-015
-- Timestamp: 2026-03-03T18:00:00+11:00
-- Environment URL: http://localhost:5173
+- Timestamp: 2026-03-04T01:50:00+11:00
+- Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws.com
 - Role: TRIAGE
 - Result: PASSED
-- Steps executed: Login as TRIAGE -> open request detail -> click Suggest Tags -> click Apply tag badge -> verify tag applied.
-- Expected: Tag is suggested and accurately applies to the request with visual indicator update.
-- Actual: Tag applied successfully.
-- Evidence: Playwright verified badge status transition.
-- Notes: Validated via automated E2E test.
+- Steps executed: Login as TRIAGE -> open request detail -> click Suggest Tags -> click Apply tag badge -> verify tag applied visually.
+- Expected: Tag is suggested and accurately applies to the request with clear visual confirmation ('Applied ✓').
+- Actual: Final rerun passed. Tag applied successfully and button updated to indicate success.
+- Evidence: Initial run revealed BUG-003 (Silent apply failure/no UI feedback). Regression run post-FIX-003 confirmed 'Applied ✓' state.
+- Notes: Validated on remote environment; state UPSERTED from blocked/confusing to PASSED.
 
 ### RUN-BATCH-20260301-01-J-016
 - Batch ID: BATCH-20260301-01
 - Run ID: RUN-BATCH-20260301-01-J-016
 - Journey ID: J-016
-- Timestamp: 2026-03-03T18:00:00+11:00
-- Environment URL: http://localhost:5173
+- Timestamp: 2026-03-04T01:50:00+11:00
+- Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws.com
 - Role: USER
 - Result: PASSED
-- Steps executed: Login as USER -> open request detail -> type override prompt -> click Draft Response -> verify output.
-- Expected: Draft response is generated and fills the textarea.
-- Actual: Draft response correctly routed to the textarea.
-- Evidence: Playwright verified textarea content.
-- Notes: Validated via automated E2E test.
+- Steps executed: Login as USER -> open request detail -> type override prompt -> click Draft Response -> click Use Draft -> verify scrolling.
+- Expected: Draft response is generated, fills the textarea, AND scrolls the user down to view the populated comment box.
+- Actual: Final rerun passed. Draft populated and smooth-scrolling engaged correctly.
+- Evidence: Initial test run revealed BUG-004 (Draft applied silently out of view). Regression run post-FIX-004 showed correct focus and scroll.
+- Notes: Validated on remote environment; UX issues resolved.

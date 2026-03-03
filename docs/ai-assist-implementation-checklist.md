@@ -45,22 +45,22 @@
 
 ## Expected User Journeys (MVP Acceptance)
 
-| Journey ID | Role | Scenario | Preconditions | Expected Result | Priority |
-| --- | --- | --- | --- | --- | --- |
-| AJ-001 | USER | Summarize own request | USER logged in and opens own `/requests/{id}` | Summary returns successfully and is shown in AI panel with metadata (`provider/model/time`). | P0 |
-| AJ-002 | USER | Suggest and apply tags for own request | USER logged in and request has meaningful description/comments | Suggested tags are returned, user can apply selected tags, and applied tags persist after refresh. | P0 |
-| AJ-003 | USER | Draft response for own request | USER logged in and opens own request detail | Draft is generated and clicking `Use Draft` fills comment textarea only (no auto-submit). | P0 |
-| AJ-004 | TRIAGE | Generate AI outputs for any request | TRIAGE logged in and opens request not created by self | TRIAGE can run all 3 AI actions successfully on non-owned requests. | P0 |
-| AJ-005 | ADMIN | Generate AI outputs for any request | ADMIN logged in and opens any request | ADMIN can run all 3 AI actions successfully. | P1 |
-| AJ-006 | USER (negative) | Access control denial on others' request | USER logged in and tries AI action on request owned by another user | API returns `403`; UI shows permission error and no AI output is persisted for this user action. | P0 |
-| AJ-007 | Any authorized role | Attachment-aware context generation | Request includes text/csv/pdf/image attachments | AI output reflects attachment-derived context; parse failures are surfaced as partial-context notes without crashing action. | P1 |
-| AJ-008 | Any authorized role | Chinese input language follow | Request content and user prompt are Chinese | Returned summary/tags/draft are Chinese (or predominantly Chinese) with coherent wording. | P1 |
-| AJ-009 | Any authorized role | English input language follow | Request content and user prompt are English | Returned summary/tags/draft are English with coherent wording. | P1 |
-| AJ-010 | Any authorized role | Provider/runtime failure handling | Provider timeout/error is simulated | UI shows actionable retry message; API returns stable AI error code; run is persisted as `FAILED` with error metadata. | P0 |
-| AJ-011 | Any authorized role | Persistence/audit verification | AI action executed successfully | DB contains run record with request/action/provider/model/prompt version/input snapshot/output payload/latency/actor. | P0 |
-| AJ-012 | Any authorized role | Repeated-click idempotency behavior | User triggers same action repeatedly in short window | System avoids duplicate noisy writes or inconsistent output states based on chosen dedupe/idempotency strategy. | P2 |
-| AJ-013 | TRIAGE/ADMIN | Manage tag dictionary | TRIAGE or ADMIN logged in | Can create/delete tags in dictionary according to governance rules. | P0 |
-| AJ-014 | Any authenticated role with request access | Apply/unapply existing tag on request | User can access target request | Tag apply/unapply succeeds and remains consistent after refresh. | P0 |
+| Journey ID | Role                                       | Scenario                                 | Preconditions                                                       | Expected Result                                                                                                              | Priority |
+| ---------- | ------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------- |
+| AJ-001     | USER                                       | Summarize own request                    | USER logged in and opens own `/requests/{id}`                       | Summary returns successfully and is shown in AI panel with metadata (`provider/model/time`).                                 | P0       |
+| AJ-002     | USER                                       | Suggest and apply tags for own request   | USER logged in and request has meaningful description/comments      | Suggested tags are returned, user can apply selected tags, and applied tags persist after refresh.                           | P0       |
+| AJ-003     | USER                                       | Draft response for own request           | USER logged in and opens own request detail                         | Draft is generated and clicking `Use Draft` fills comment textarea only (no auto-submit).                                    | P0       |
+| AJ-004     | TRIAGE                                     | Generate AI outputs for any request      | TRIAGE logged in and opens request not created by self              | TRIAGE can run all 3 AI actions successfully on non-owned requests.                                                          | P0       |
+| AJ-005     | ADMIN                                      | Generate AI outputs for any request      | ADMIN logged in and opens any request                               | ADMIN can run all 3 AI actions successfully.                                                                                 | P1       |
+| AJ-006     | USER (negative)                            | Access control denial on others' request | USER logged in and tries AI action on request owned by another user | API returns `403`; UI shows permission error and no AI output is persisted for this user action.                             | P0       |
+| AJ-007     | Any authorized role                        | Attachment-aware context generation      | Request includes text/csv/pdf/image attachments                     | AI output reflects attachment-derived context; parse failures are surfaced as partial-context notes without crashing action. | P1       |
+| AJ-008     | Any authorized role                        | Chinese input language follow            | Request content and user prompt are Chinese                         | Returned summary/tags/draft are Chinese (or predominantly Chinese) with coherent wording.                                    | P1       |
+| AJ-009     | Any authorized role                        | English input language follow            | Request content and user prompt are English                         | Returned summary/tags/draft are English with coherent wording.                                                               | P1       |
+| AJ-010     | Any authorized role                        | Provider/runtime failure handling        | Provider timeout/error is simulated                                 | UI shows actionable retry message; API returns stable AI error code; run is persisted as `FAILED` with error metadata.       | P0       |
+| AJ-011     | Any authorized role                        | Persistence/audit verification           | AI action executed successfully                                     | DB contains run record with request/action/provider/model/prompt version/input snapshot/output payload/latency/actor.        | P0       |
+| AJ-012     | Any authorized role                        | Repeated-click idempotency behavior      | User triggers same action repeatedly in short window                | System avoids duplicate noisy writes or inconsistent output states based on chosen dedupe/idempotency strategy.              | P2       |
+| AJ-013     | TRIAGE/ADMIN                               | Manage tag dictionary                    | TRIAGE or ADMIN logged in                                           | Can create/delete tags in dictionary according to governance rules.                                                          | P0       |
+| AJ-014     | Any authenticated role with request access | Apply/unapply existing tag on request    | User can access target request                                      | Tag apply/unapply succeeds and remains consistent after refresh.                                                             | P0       |
 
 ---
 
@@ -153,31 +153,31 @@ Note:
 
 ### 1.1 API shape and action boundaries
 
-- [ ] Define three independent API actions:
+- [x] Define three independent API actions:
   - `POST /api/v1/requests/{id}/ai/summarize`
   - `POST /api/v1/requests/{id}/ai/suggest-tags`
   - `POST /api/v1/requests/{id}/ai/draft-response`
-- [ ] Ensure each action has its own request/response DTO and validation (no overloaded "do everything" endpoint).
+- [x] Ensure each action has its own request/response DTO and validation (no overloaded "do everything" endpoint).
 - [x] Finalize tagging API contracts from "Tagging Feature Design" and include them in OpenAPI-first schema review before implementation.
-- [ ] Add idempotency strategy for repeated clicks (for example client idempotency key or short dedupe window on same input hash).
-- [ ] Define consistent AI error codes in global API error model (`AI_PROVIDER_ERROR`, `AI_TIMEOUT`, `AI_CONTEXT_TOO_LARGE`, etc.).
+- [x] Add idempotency strategy for repeated clicks (for example client idempotency key or short dedupe window on same input hash).
+- [x] Define consistent AI error codes in global API error model (`AI_PROVIDER_ERROR`, `AI_TIMEOUT`, `AI_CONTEXT_TOO_LARGE`, etc.).
 
 ### 1.2 Provider abstraction and runtime switching
 
-- [ ] Create provider interface (for example `AiAssistProvider`) with stable contract for all 3 actions.
-- [ ] Implement `StubAiAssistProvider` for local/dev test determinism.
-- [ ] Implement `BedrockAiAssistProvider` for dev runtime.
-- [ ] Add config switch (`AI_PROVIDER=stub|bedrock`) and fail-fast startup validation for invalid config.
-- [ ] Standardize structured response schema returned by all providers to prevent provider-specific drift.
+- [x] Create provider interface (for example `AiAssistProvider`) with stable contract for all 3 actions.
+- [x] Implement `StubAiAssistProvider` for local/dev test determinism.
+- [x] Implement `BedrockAiAssistProvider` for dev runtime.
+- [x] Add config switch (`AI_PROVIDER=stub|bedrock`) and fail-fast startup validation for invalid config.
+- [x] Standardize structured response schema returned by all providers to prevent provider-specific drift.
 
 ### 1.3 Prompt and output governance
 
-- [ ] Add prompt templates with explicit versioning (for example `prompt_version=v1` in persisted run records).
-- [ ] Define strict output schema for:
+- [x] Add prompt templates with explicit versioning (for example `prompt_version=v1` in persisted run records).
+- [x] Define strict output schema for:
   - summary text
   - suggested tags list
   - response draft text
-- [ ] Add output sanitation (strip markdown/control tokens that can break UI rendering).
+- [x] Add output sanitation (strip markdown/control tokens that can break UI rendering).
 
 ---
 
@@ -185,7 +185,7 @@ Note:
 
 ### 2.1 Flyway migrations
 
-- [ ] Create `ai_assist_runs` table (or equivalent) with at least:
+- [x] Create `ai_assist_runs` table (or equivalent) with at least:
   - `id`
   - `request_id`
   - `action_type` (`SUMMARIZE`, `SUGGEST_TAGS`, `DRAFT_RESPONSE`)
@@ -199,8 +199,8 @@ Note:
   - `latency_ms`
   - `created_by`
   - `created_at`
-- [ ] Add indexes on `request_id`, `action_type`, `created_at`, and `created_by`.
-- [ ] Add retention policy design (MVP: keep all in dev; production TTL policy tracked and documented).
+- [x] Add indexes on `request_id`, `action_type`, `created_at`, and `created_by`.
+- [x] Add retention policy design (MVP: keep all in dev; production TTL policy tracked and documented).
 
 ### 2.2 Request tag persistence (MVP required)
 
@@ -212,8 +212,8 @@ Note:
 
 ### 2.3 Attachment extraction traceability
 
-- [ ] Add optional `ai_assist_context_attachments` table (or JSONB field) storing which attachments were used, parse status, and extraction size.
-- [ ] Persist parse failures per attachment for debuggability (not only top-level AI failure).
+- [x] Add optional `ai_assist_context_attachments` table (or JSONB field) storing which attachments were used, parse status, and extraction size.
+- [x] Persist parse failures per attachment for debuggability (not only top-level AI failure).
 
 ---
 
@@ -221,27 +221,27 @@ Note:
 
 ### 3.1 Context assembly
 
-- [ ] Build a dedicated context builder service that composes:
+- [x] Build a dedicated context builder service that composes:
   - request title/description
   - comment thread (chronological, size-bounded)
   - attachment-derived context via multimodal input (plus text snippets for text/csv)
-- [ ] Enforce deterministic truncation policy (for example newest-first or priority-based truncation) and include truncation metadata.
-- [ ] Define maximum context size guardrails (chars/tokens/attachments) before calling provider.
+- [x] Enforce deterministic truncation policy (for example newest-first or priority-based truncation) and include truncation metadata.
+- [x] Define maximum context size guardrails (chars/tokens/attachments) before calling provider.
 
 ### 3.2 Attachment ingestion pipeline (Bedrock multimodal-first)
 
-- [ ] Parse text-based attachments (`text/plain`, `text/csv`) directly into text snippets.
-- [ ] For `application/pdf` and image types (`image/jpeg`, `image/png`, `image/webp`), fetch object bytes from S3 and pass them directly to Bedrock multimodal payload (no custom OCR/PDF extraction in MVP).
-- [ ] Add model capability guardrails (`supportsPdf`, `supportsImage`) and fail fast if configured model cannot process required attachment types.
-- [ ] Skip unsupported content safely with explicit "not included in AI context" metadata.
-- [ ] Never expose raw object URLs in AI logs/responses.
-- [ ] Store per-attachment inclusion status (included/skipped/failed) for auditability.
+- [x] Parse text-based attachments (`text/plain`, `text/csv`) directly into text snippets.
+- [x] For `application/pdf` and image types (`image/jpeg`, `image/png`, `image/webp`), fetch object bytes from S3 and pass them directly to Bedrock multimodal payload (no custom OCR/PDF extraction in MVP).
+- [x] Add model capability guardrails (`supportsPdf`, `supportsImage`) and fail fast if configured model cannot process required attachment types.
+- [x] Skip unsupported content safely with explicit "not included in AI context" metadata.
+- [x] Never expose raw object URLs in AI logs/responses.
+- [x] Store per-attachment inclusion status (included/skipped/failed) for auditability.
 
 ### 3.3 Performance and reliability controls
 
-- [ ] Add per-action timeout and retry strategy (bounded retries, jittered backoff).
-- [ ] Add circuit-breaker/fallback behavior (for example return graceful failure with retry guidance).
-- [ ] Add metrics for parse duration, provider latency, and failure rate.
+- [x] Add per-action timeout and retry strategy (bounded retries, jittered backoff).
+- [x] Add circuit-breaker/fallback behavior (for example return graceful failure with retry guidance).
+- [x] Add metrics for parse duration, provider latency, and failure rate.
 
 ---
 
@@ -249,19 +249,19 @@ Note:
 
 ### 4.1 Service and controller implementation
 
-- [ ] Implement service methods for:
+- [x] Implement service methods for:
   - summarize request
   - suggest tags
   - generate draft response
-- [ ] Implement controller endpoints under `/api/v1/requests/{id}/ai/*`.
-- [ ] Return structured payloads with metadata (`provider`, `model`, `latencyMs`, `languageDetected/applied`).
+- [x] Implement controller endpoints under `/api/v1/requests/{id}/ai/*`.
+- [x] Return structured payloads with metadata (`provider`, `model`, `latencyMs`, `languageDetected/applied`).
 
 ### 4.2 RBAC and ownership checks
 
-- [ ] Enforce request-scope access:
+- [x] Enforce request-scope access:
   - `USER` can invoke AI only on own requests
   - `TRIAGE`/`ADMIN` can invoke on any request
-- [ ] Add negative-path tests for unauthorized AI access (`403`).
+- [x] Add negative-path tests for unauthorized AI access (`403`).
 - [x] Enforce tagging RBAC matrix:
   - `TRIAGE`/`ADMIN` can create/delete dictionary tags
   - request-access users can apply/unapply tags on that request only
@@ -269,19 +269,19 @@ Note:
 
 ### 4.3 Bedrock runtime integration
 
-- [ ] Add Bedrock runtime SDK dependency and configuration.
-- [ ] Add model selection config (`AI_BEDROCK_MODEL_ID`, optional action-level override) and map model capability flags for attachment handling.
-- [ ] Add IAM permissions to ECS task role with least privilege:
+- [x] Add Bedrock runtime SDK dependency and configuration.
+- [x] Add model selection config (`AI_BEDROCK_MODEL_ID`, optional action-level override) and map model capability flags for attachment handling.
+- [x] Add IAM permissions to ECS task role with least privilege:
   - `bedrock:InvokeModel`
   - `bedrock:InvokeModelWithResponseStream` (only if streaming is enabled)
   - resource-scoped to approved model ARNs where possible.
-- [ ] Ensure no credentials are hard-coded; use IAM role only in dev runtime.
+- [x] Ensure no credentials are hard-coded; use IAM role only in dev runtime.
 
 ### 4.4 Language-follow behavior
 
-- [ ] Implement language inference from user/request context and pass instruction to provider.
-- [ ] Add explicit fallback rule when language is ambiguous (default English unless clear Chinese signal).
-- [ ] Verify mixed-language requests still produce coherent output.
+- [x] Implement language inference from user/request context and pass instruction to provider.
+- [x] Add explicit fallback rule when language is ambiguous (default English unless clear Chinese signal).
+- [x] Verify mixed-language requests still produce coherent output.
 
 ---
 
@@ -289,26 +289,26 @@ Note:
 
 ### 5.1 Request detail AI panel
 
-- [ ] Add an `AI Assist` panel on request detail page with 3 buttons:
+- [x] Add an `AI Assist` panel on request detail page with 3 buttons:
   - `Summarize`
   - `Suggest Tags`
   - `Draft Response`
-- [ ] Show independent loading/error states per action (no global blocking spinner).
-- [ ] Show timestamp/provider metadata for last generated result.
+- [x] Show independent loading/error states per action (no global blocking spinner).
+- [x] Show timestamp/provider metadata for last generated result.
 
 ### 5.2 Result handling UX
 
-- [ ] Summary action: render concise summary block with copy-to-clipboard.
-- [ ] Suggest tags action: render chips/list and allow "apply selected tags" flow.
+- [x] Summary action: render concise summary block with copy-to-clipboard.
+- [x] Suggest tags action: render chips/list and allow "apply selected tags" flow.
 - [x] Add lightweight dictionary management UI for `TRIAGE`/`ADMIN` (create/delete tags).
-- [ ] Draft response action: provide `Use Draft` action that fills comment textarea only.
-- [ ] Confirm draft is editable before send and never auto-posts comment.
+- [x] Draft response action: provide `Use Draft` action that fills comment textarea only.
+- [x] Confirm draft is editable before send and never auto-posts comment.
 
 ### 5.3 Failure UX
 
-- [ ] Show actionable user errors for timeout/provider failure/context too large.
-- [ ] Add retry action per AI result card.
-- [ ] Ensure role-based UI visibility aligns with backend RBAC (no hidden unauthorized calls).
+- [x] Show actionable user errors for timeout/provider failure/context too large.
+- [x] Add retry action per AI result card.
+- [x] Ensure role-based UI visibility aligns with backend RBAC (no hidden unauthorized calls).
 
 ---
 
@@ -316,12 +316,12 @@ Note:
 
 ### 6.1 Backend tests
 
-- [ ] Unit tests for context builder, truncation, prompt rendering, language selection, and output parsing.
-- [ ] Integration tests for all 3 endpoints with RBAC and persistence verification.
-- [ ] Provider contract tests:
+- [x] Unit tests for context builder, truncation, prompt rendering, language selection, and output parsing.
+- [x] Integration tests for all 3 endpoints with RBAC and persistence verification.
+- [x] Provider contract tests:
   - `stub` provider deterministic schema
   - `bedrock` provider adapter mapping and error handling (mocked).
-- [ ] Attachment ingestion tests including:
+- [x] Attachment ingestion tests including:
   - text/csv snippet extraction path
   - PDF/image multimodal byte path
   - unsupported/failed attachment handling with partial-context result
@@ -329,34 +329,34 @@ Note:
 
 ### 6.2 Frontend tests
 
-- [ ] Component tests for AI panel state transitions.
-- [ ] Playwright E2E journeys for:
+- [x] Component tests for AI panel state transitions.
+- [x] Playwright E2E journeys for:
   - summarize success
   - suggest-tags + apply-tags success
   - draft generation + "Use Draft" into comment input
   - error/retry flows
   - RBAC negative UI paths
-- [ ] Keep mocked AI API flows deterministic for CI stability.
+- [x] Keep mocked AI API flows deterministic for CI stability.
 
 ### 6.3 CI integration
 
-- [ ] Add backend test jobs covering AI modules.
-- [ ] Add frontend E2E coverage for AI Assist journeys.
-- [ ] Add post-deploy smoke check in `deploy.yml` for one AI endpoint in dev.
+- [x] Add backend test jobs covering AI modules.
+- [x] Add frontend E2E coverage for AI Assist journeys.
+- [x] Add post-deploy smoke check in `deploy.yml` for one AI endpoint in dev.
 
 ---
 
 ## Phase 7: OpenAPI, README, E2E Docs, and Runbooks
 
-- [ ] Update `docs/api/openapi.yaml` with all `/ai/*` endpoints and schemas.
-- [ ] Update README:
+- [x] Update `docs/api/openapi.yaml` with all `/ai/*` endpoints and schemas.
+- [x] Update README:
   - move AI Assist from "future" to implemented status when done
   - document 3-action UX, tag apply flow, and draft-not-auto-send behavior
   - document provider strategy (`local=stub`, `dev=bedrock`)
-- [ ] Update `docs/runbooks/deployment.md` with AI env vars and Bedrock verification steps.
+- [x] Update `docs/runbooks/deployment.md` with AI env vars and Bedrock verification steps.
 - [x] Update deployment runbook with scripted model-access bootstrap command(s) and expected success checks.
-- [ ] Update `docs/runbooks/incident-response.md` with AI failure triage steps (timeout/provider/model misconfig).
-- [ ] Add AI-specific journeys into `docs/ai-e2e/user-journeys.md` and include in standard regression batch.
+- [x] Update `docs/runbooks/incident-response.md` with AI failure triage steps (timeout/provider/model misconfig).
+- [x] Add AI-specific journeys into `docs/ai-e2e/user-journeys.md` and include in standard regression batch.
 
 ---
 
@@ -374,14 +374,14 @@ Note:
 
 ## Definition of Done (AI Assist MVP)
 
-- [ ] Bedrock account/model access is enabled for the target region and verified from running ECS task.
-- [ ] Terraform-managed ECS runtime includes AI env configuration and least-privilege Bedrock invoke permissions.
+- [x] Bedrock account/model access is enabled for the target region and verified from running ECS task.
+- [x] Terraform-managed ECS runtime includes AI env configuration and least-privilege Bedrock invoke permissions.
 - [x] Bedrock model-access/bootstrap is automated via repo-managed scripts/ad hoc commands (not manual console-only operation).
-- [ ] All three AI actions work end-to-end from request detail page.
+- [x] All three AI actions work end-to-end from request detail page.
 - [x] Tagging feature exists and applied tags persist (backend + frontend + API contract).
-- [ ] AI context includes request, comments, and parsed attachment content.
-- [ ] RBAC rules are enforced in backend and reflected in frontend.
-- [ ] AI outputs are persisted with traceable metadata in database.
-- [ ] Draft response inserts into comment input and requires explicit user submission.
-- [ ] OpenAPI, README, runbooks, and E2E docs are synchronized with runtime behavior.
-- [ ] CI passes with AI backend/frontend coverage and dev smoke verification.
+- [x] AI context includes request, comments, and parsed attachment content.
+- [x] RBAC rules are enforced in backend and reflected in frontend.
+- [x] AI outputs are persisted with traceable metadata in database.
+- [x] Draft response inserts into comment input and requires explicit user submission.
+- [x] OpenAPI, README, runbooks, and E2E docs are synchronized with runtime behavior.
+- [x] CI passes with AI backend/frontend coverage and dev smoke verification.

@@ -32,16 +32,16 @@ Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws
 - BLOCKED: 0
 
 ## 4) Bug Totals (Severity and Status)
-- Total bugs: 2
+- Total bugs: 4
 - By severity:
   - High: 1 (BUG-001)
-  - Medium: 1 (BUG-002)
+  - Medium: 3 (BUG-002, BUG-003, BUG-004)
 - By status:
-  - VERIFIED: 2
+  - VERIFIED: 4
   - OPEN/IN_PROGRESS/FIXED/WONT_FIX: 0
 
 ## 5) Fixed vs Unfixed
-- Fixed and verified: 2
+- Fixed and verified: 4
 - Unfixed: 0
 
 ## 6) Remaining Top Risks

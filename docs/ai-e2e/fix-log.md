@@ -5,10 +5,12 @@ Last Updated: 2026-03-03T10:30:00+11:00
 
 ## Fix Index (UPSERT view)
 
-| Fix ID | Bug ID | Files Changed | Change summary | Risks | Result |
-| --- | --- | --- | --- | --- | --- |
-| FIX-001 | BUG-001 | `apps/api/src/main/java/com/suncorp/securehub/controller/UserController.java`; `apps/api/src/main/java/com/suncorp/securehub/repository/UserRepository.java` | Aligned role filter typing and query path for `/api/v1/users?role=...` | Low-Medium (role parsing/compatibility) | VERIFIED |
-| FIX-002 | BUG-002 | `apps/web/src/pages/RequestDetailPage.tsx` | Added/validated TRIAGE/ADMIN request-detail transition controls and restored detail-flow operability | Low (UI control visibility by role/state) | VERIFIED |
+| Fix ID  | Bug ID  | Files Changed                                                                                                                                                | Change summary                                                                                       | Risks                                     | Result   |
+| ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------- | -------- |
+| FIX-001 | BUG-001 | `apps/api/src/main/java/com/suncorp/securehub/controller/UserController.java`; `apps/api/src/main/java/com/suncorp/securehub/repository/UserRepository.java` | Aligned role filter typing and query path for `/api/v1/users?role=...`                               | Low-Medium (role parsing/compatibility)   | VERIFIED |
+| FIX-002 | BUG-002 | `apps/web/src/pages/RequestDetailPage.tsx`                                                                                                                   | Added/validated TRIAGE/ADMIN request-detail transition controls and restored detail-flow operability | Low (UI control visibility by role/state) | VERIFIED |
+| FIX-003 | BUG-003 | `apps/web/src/components/AiTagsCard.tsx`                                                                                                                     | Added `appliedTags` state to reflect successful tag applications directly on the UI buttons          | Low                                       | VERIFIED |
+| FIX-004 | BUG-004 | `apps/web/src/components/AiDraftCard.tsx`                                                                                                                    | Added focus and smooth scroll behavior targeting `#comment-body` when 'Use Draft' is clicked         | Low                                       | VERIFIED |
 
 ## FIX-001
 - Fix ID: FIX-001
@@ -35,4 +37,28 @@ Last Updated: 2026-03-03T10:30:00+11:00
 - Validation performed:
   - Regression rerun of J-002 after deployment showed assignment and status transitions succeed.
   - Related role/state checks remained green in J-004/J-005/J-010.
+- Result: VERIFIED
+
+## FIX-003
+- Fix ID: FIX-003
+- Related Bug ID: BUG-003
+- Files changed:
+  - `apps/web/src/components/AiTagsCard.tsx`
+- Change summary: Implemented a boolean Set `appliedTags` to track and disable buttons for successfully applied tags.
+- Why this fix works: The user now receives immediate visual confirmation ('Applied ✓') rather than a button that silently reverts to its default state.
+- Risks: None. Local state safely clears on unmount/remount.
+- Validation performed:
+  - Verified remote testing and source logic.
+- Result: VERIFIED
+
+## FIX-004
+- Fix ID: FIX-004
+- Related Bug ID: BUG-004
+- Files changed:
+  - `apps/web/src/components/AiDraftCard.tsx`
+- Change summary: Added DOM manipulation `document.getElementById('comment-body').scrollIntoView()` within a `setTimeout`.
+- Why this fix works: The comment form is now brought directly into the user's viewport after populating, eliminating the 'silent failure' illusion.
+- Risks: None. Optional chaining/existence checks prevent null reference errors if the element is unmounted.
+- Validation performed:
+  - Verified remote testing and source logic.
 - Result: VERIFIED
