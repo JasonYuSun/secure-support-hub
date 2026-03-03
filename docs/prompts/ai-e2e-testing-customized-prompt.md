@@ -73,10 +73,25 @@ Artifacts you must create/update:
 
 ID conventions:
 - Journey: J-###
-- Run: RUN-YYYYMMDD-###
+- Run: RUN-<Batch ID>-<Journey ID>
 - Bug: BUG-###
 - Fix: FIX-###
 IDs must remain stable across reruns.
+
+Idempotency and rerun contract (mandatory):
+1) Read all existing docs/ai-e2e/*.md files before writing.
+2) Use one Batch ID per execution session:
+   - Batch ID format: BATCH-YYYYMMDD (optionally BATCH-YYYYMMDD-01 for multiple independent batches on the same day).
+   - Add `Current Batch ID: <id>` at the top of each deliverable.
+3) Use stable keys and UPSERT behavior:
+   - Journey key: normalized `Role + Feature + Scenario`
+   - Run key: `Batch ID + Journey ID`
+   - Bug fingerprint: `Journey ID + failing assertion + endpoint/screen`
+   - Fix key: `Bug ID`
+4) Never duplicate entries with the same key:
+   - key exists -> update existing entry
+   - key missing -> create new entry
+5) Reuse existing Journey/Bug/Fix IDs whenever keys match; create new IDs only for net-new entities.
 
 Step 1: Read and model
 1) Read README.md fully.
@@ -88,7 +103,7 @@ Step 1: Read and model
 3) Write "Assumptions and Spec Drift" explicitly.
 
 Step 2: Generate journey catalog
-Create docs/ai-e2e/user-journeys.md with this table:
+Create or UPSERT docs/ai-e2e/user-journeys.md with this table:
 | Journey ID | Feature | Role | Scenario | Preconditions | Steps (high-level) | Expected Result | Priority (P0/P1/P2) | Risk (H/M/L) |
 
 Coverage minimums:
@@ -149,7 +164,8 @@ Attachment checks:
 - Over limit shows "Attachment limit reached".
 - If upload PUT returns 403, UI should show "Upload URL expired or forbidden. Retry to request a new upload URL."
 
-For each executed journey append to docs/ai-e2e/test-runs.md:
+For each executed journey UPSERT one record in docs/ai-e2e/test-runs.md using Run key:
+- Batch ID
 - Run ID
 - Journey ID
 - Timestamp
@@ -163,7 +179,7 @@ For each executed journey append to docs/ai-e2e/test-runs.md:
 - Notes
 
 Step 5: Bug logging
-For every FAILED journey create/update a bug entry in docs/ai-e2e/bug-log.md:
+For every FAILED journey create/update exactly one bug entry in docs/ai-e2e/bug-log.md by Bug fingerprint:
 - Bug ID
 - Journey ID
 - Title
@@ -178,7 +194,9 @@ For every FAILED journey create/update a bug entry in docs/ai-e2e/bug-log.md:
 - Affected layer (Frontend/Backend/API/Data/Infra)
 - Status (OPEN/IN_PROGRESS/FIXED/VERIFIED/WONT_FIX)
 - Owner
-- Created date
+- First seen date
+- Last seen date
+- Occurrence count
 
 Severity policy:
 - Critical: system unusable, data-loss risk, or major security break
@@ -191,7 +209,7 @@ For each OPEN bug:
 1) Diagnose root cause from UI behavior + network + code.
 2) Implement the smallest safe fix.
 3) Avoid unrelated refactors.
-4) Record fix in docs/ai-e2e/fix-log.md:
+4) Record fix in docs/ai-e2e/fix-log.md with UPSERT by Fix key:
    - Fix ID
    - Bug ID
    - Files changed
@@ -216,7 +234,7 @@ After each fix:
 - Update statuses:
   - bug -> VERIFIED if reproducible failure is gone
   - keep OPEN/IN_PROGRESS if still failing
-- Append all rerun evidence to docs/ai-e2e/test-runs.md.
+- UPSERT all rerun evidence to docs/ai-e2e/test-runs.md (do not duplicate same Run key).
 
 Step 8: Final report
 Generate docs/ai-e2e/final-summary.md including:
@@ -227,6 +245,7 @@ Generate docs/ai-e2e/final-summary.md including:
 5) Fixed vs unfixed
 6) Remaining top risks
 7) Recommended next E2E priorities
+8) Current Batch ID and rerun timestamp
 
 Quality gate (strict):
 - Never mark PASSED without explicit assertion evidence.
@@ -234,9 +253,11 @@ Quality gate (strict):
 - Every FIXED bug must include regression evidence.
 - If blocked, provide exact unblock commands and missing prerequisites.
 - Be precise; avoid vague statements like "looks good".
+- Do not create duplicate rows for the same Journey key / Run key / Bug fingerprint / Fix key.
 
 Start now:
-1) Read README.md
-2) Build docs/ai-e2e/user-journeys.md
-3) Execute and document end-to-end until final summary is complete.
+1) Read existing docs/ai-e2e/*.md and detect/reuse active Batch ID
+2) Read README.md
+3) Build or UPSERT docs/ai-e2e/user-journeys.md
+4) Execute and document end-to-end until final summary is complete.
 ```

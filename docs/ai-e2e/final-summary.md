@@ -1,31 +1,54 @@
 # E2E Execution Summary
 
-## Overview
-Automated E2E testing of the Secure Support Hub has been completed against the remote development environment (`http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws.com`). 
-Testing covered all core flows including authentication, Role-Based Access Control (RBAC), request creation, commenting, file attachments (S3 presigned URLs), status state machines, and invalid input validation.
+Current Batch ID: BATCH-20260301-01
+Rerun Timestamp: 2026-03-02T01:00:00+11:00
+Last Updated: 2026-03-03T10:30:00+11:00
+Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws.com
 
-## Test Results
-- **Total Journeys**: 12
-- **Passed**: 12 (After J-002 regression)
-- **Failed**: 0 (J-002 bugs resolved)
+## 1) Scope Tested
+- Authentication and protected-route redirects
+- USER request lifecycle (create, comment, delete)
+- TRIAGE queue and request-detail workflow (assign + status transitions)
+- ADMIN user-role management guardrails
+- RBAC negative paths across USER/TRIAGE
+- Attachment lifecycle and boundary validations
+- Request state-machine edge behavior
 
-## Identified Issues & Resolutions
-During the execution, the TRIAGE happy path failed due to backend and frontend issues, which were subsequently fixed locally:
+## 2) Journey Totals (Role and Priority)
+- Total journeys: 13
+- By role:
+  - USER: 6 (J-001, J-004, J-008, J-011, J-012, J-013)
+  - TRIAGE: 3 (J-002, J-005, J-010)
+  - ADMIN: 2 (J-003, J-006)
+  - UNAUTH: 2 (J-007, J-009)
+- By priority:
+  - P0: 3
+  - P1: 8
+  - P2: 2
 
-1. **[BUG-001] 500 error on /users API filtering** (High Severity/P0): 
-   - *Issue*: `GET /api/v1/users?role=TRIAGE` failed, preventing Assignee assignment.
-   - *Fix*: The API layered mistakenly used `String` instead of the `RoleName` enum in `UserRepository`. This was corrected and confirmed compiling locally.
-2. **[BUG-002] Missing Assignee/Status controls on Request Detail** (Medium Severity/P1):
-   - *Issue*: The detail page (`/requests/:id`) had no way to transition request status (e.g. OPEN to IN_PROGRESS).
-   - *Fix*: The `STATUS_TRANSITIONS` buttons were added to the UI for TRIAGE and ADMIN roles. (Assignee dropdown visibility was concurrently fixed by BUG-001).
+## 3) Run Totals (Latest UPSERT State)
+- PASSED: 13
+- FAILED: 0
+- BLOCKED: 0
 
-These fixes have been deployed by the user and **verified in production** via a final regression subagent pass. All bug statuses are now `VERIFIED_REMOTE`.
+## 4) Bug Totals (Severity and Status)
+- Total bugs: 2
+- By severity:
+  - High: 1 (BUG-001)
+  - Medium: 1 (BUG-002)
+- By status:
+  - VERIFIED: 2
+  - OPEN/IN_PROGRESS/FIXED/WONT_FIX: 0
 
-## Successes
-- Core functionality of Users creating and commenting requests works flawlessly.
-- Authentication paths, redirects, and state guards behave exactly as expected.
-- RBAC mechanisms correctly lock out unauthorized users and guard out-of-bounds admin alterations.
-- AWS S3 attachment handling functions correctly, including type validation boundaries.
+## 5) Fixed vs Unfixed
+- Fixed and verified: 2
+- Unfixed: 0
 
-## Next Steps
-All targeted automated end-to-end testing phases are complete. The application successfully fulfills its spec requirements under test. Further activities can transition to fixing known compiler/lint warnings (e.g., specific to the `AttachmentService`), increasing unit test coverages, or addressing architectural debts identified outside the E2E boundary.
+## 6) Remaining Top Risks
+- Evidence granularity risk: Some run artifacts were summarized textually; future batches should persist screenshot/log links per step for stronger auditability.
+- Remote-env drift risk: Environment changes between runs can invalidate historical assumptions; keep per-batch environment metadata explicit.
+
+## 7) Recommended Next E2E Priorities
+1. Add explicit artifact links (screenshots/network exports) per run record field in `test-runs.md`.
+2. Add a dedicated journey for attachment upload `403` expired-url handling with captured response metadata.
+3. Add a recurring smoke batch (P0-only) and a nightly full batch (P0+P1+P2) using the same UPSERT schema.

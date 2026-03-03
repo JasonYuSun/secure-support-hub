@@ -21,6 +21,23 @@ Deliverables (must create/update these markdown files):
 4) docs/ai-e2e/fix-log.md
 5) docs/ai-e2e/final-summary.md
 
+Idempotency contract (mandatory for reruns):
+1. Read existing deliverable files before writing anything.
+2. Use one execution batch ID per run session:
+- Batch ID format: BATCH-YYYYMMDD (optionally BATCH-YYYYMMDD-01 for multiple independent batches on the same day).
+- Write `Current Batch ID: <id>` at the top of each deliverable file.
+3. Use stable keys and UPSERT behavior:
+- Journey key: normalized `Feature + Scenario` (plus role when role-specific).
+- Run key: `Batch ID + Journey ID`.
+- Bug fingerprint: `Journey ID + failing assertion + endpoint/screen`.
+- Fix key: `Bug ID`.
+4. Never duplicate records with the same key:
+- If key exists, update the existing record.
+- If key does not exist, create a new record.
+5. Keep IDs stable across reruns:
+- Reuse Journey/Bug/Fix IDs for matching keys.
+- Only create new IDs for truly new entities.
+
 Execution workflow:
 
 Step 1: Read and model the product
@@ -50,7 +67,7 @@ Step 2: Generate comprehensive user journeys
 - Preconditions
 - Test data
 - Expected outcome
-4. Save to docs/ai-e2e/user-journeys.md.
+4. UPSERT journeys into docs/ai-e2e/user-journeys.md using Journey key (do not duplicate rows).
 
 Required table format for user-journeys.md:
 | Journey ID | Feature | Scenario | Preconditions | Steps (high-level) | Expected Result | Priority | Risk |
@@ -73,10 +90,11 @@ Step 4: Execute journeys in browser (multimodal)
 - Use visual understanding of UI states and messages.
 - Verify actual UI behavior against expected outcome.
 - Capture evidence for every failure (what was seen, where, and when).
-3. For each journey write a run entry in docs/ai-e2e/test-runs.md.
+3. For each journey UPSERT one run entry in docs/ai-e2e/test-runs.md using Run key.
 
 Required format for each test run entry:
-- Run ID: RUN-YYYYMMDD-###
+- Batch ID:
+- Run ID: RUN-<Batch ID>-<Journey ID>
 - Journey ID:
 - Timestamp:
 - Environment:
@@ -88,7 +106,7 @@ Required format for each test run entry:
 - Notes:
 
 Step 5: Log bugs for every failed journey
-For each FAILED journey, create a bug in docs/ai-e2e/bug-log.md with:
+For each FAILED journey, create or update a bug in docs/ai-e2e/bug-log.md by Bug fingerprint:
 
 - Bug ID: BUG-###
 - Related Journey ID:
@@ -103,8 +121,10 @@ For each FAILED journey, create a bug in docs/ai-e2e/bug-log.md with:
 - Suspected root cause:
 - Affected layers: Frontend | Backend | API | Data | Infra
 - Status: OPEN | IN_PROGRESS | FIXED | VERIFIED | WONT_FIX
+- First seen date:
+- Last seen date:
+- Occurrence count:
 - Owner:
-- Created date:
 
 Severity guideline:
 - Critical: system unusable/data loss/security break
@@ -118,7 +138,7 @@ Step 6: Propose and apply fixes (if code access is available)
 - Propose minimal, safe fix.
 - Implement fix with smallest viable change.
 - Avoid unrelated refactoring.
-2. Record each fix in docs/ai-e2e/fix-log.md:
+2. Record each fix in docs/ai-e2e/fix-log.md with UPSERT by Fix key:
 
 - Fix ID: FIX-###
 - Related Bug ID:
@@ -136,7 +156,7 @@ Step 7: Regression verification
 2. Update status:
 - BUG status -> VERIFIED if fixed and reproducible issue no longer occurs
 - If still failing -> keep OPEN or set IN_PROGRESS with new findings
-3. Append regression results to docs/ai-e2e/test-runs.md.
+3. UPSERT regression outcomes into docs/ai-e2e/test-runs.md using the same Run key rules.
 
 Step 8: Final report
 Generate docs/ai-e2e/final-summary.md with:
@@ -147,6 +167,10 @@ Generate docs/ai-e2e/final-summary.md with:
 5. Fixed vs unfixed counts
 6. Top product risks still open
 7. Recommended next E2E priorities
+8. Current Batch ID and rerun timestamp
+
+Final-summary idempotency:
+- For the same Batch ID, replace/update summary content instead of appending duplicate sections.
 
 Quality rules:
 - Be explicit and auditable. No vague statements like “seems fine”.
@@ -157,6 +181,7 @@ Quality rules:
 - If you must make assumptions, list them clearly and continue.
 
 Start now:
-1. Read README.md
-2. Generate docs/ai-e2e/user-journeys.md
-3. Proceed through the workflow end-to-end.
+1. Read existing docs/ai-e2e/*.md files and detect/reuse active Batch ID if present.
+2. Read README.md.
+3. Generate or UPSERT docs/ai-e2e/user-journeys.md.
+4. Proceed through the workflow end-to-end.
