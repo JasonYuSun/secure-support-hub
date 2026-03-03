@@ -26,9 +26,14 @@ cd secure-support-hub
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 
-# 3. Edit .env files with real values (JWT_SECRET at minimum)
+# 3. Edit .env files with real values
 # apps/api/.env: Set JWT_SECRET to a random 64-byte base64 string
 openssl rand -base64 64
+
+# Configure AI Provider (Optional, defaults to stub)
+# APP_AI_PROVIDER=bedrock
+# APP_AI_BEDROCK_MODEL_ID=anthropic.claude-sonnet-4-6
+# APP_AI_BEDROCK_AWS_REGION=ap-southeast-2
 
 # 4. Build and start the full stack
 docker compose -f infra/docker-compose/docker-compose.yml up --build

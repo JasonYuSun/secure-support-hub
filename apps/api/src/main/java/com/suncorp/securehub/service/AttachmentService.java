@@ -61,8 +61,7 @@ public class AttachmentService {
             Long requestId,
             AttachmentUploadUrlRequestDto dto,
             String username,
-            Set<String> roles
-    ) {
+            Set<String> roles) {
         SupportRequest request = findRequestAndAuthorize(requestId, username, roles);
         User uploader = findUserByUsername(username);
         String contentType = validateUploadRequest(dto);
@@ -76,8 +75,7 @@ public class AttachmentService {
             Long commentId,
             AttachmentUploadUrlRequestDto dto,
             String username,
-            Set<String> roles
-    ) {
+            Set<String> roles) {
         Comment comment = findCommentAndAuthorize(requestId, commentId, username, roles);
         User uploader = findUserByUsername(username);
         String contentType = validateUploadRequest(dto);
@@ -86,7 +84,8 @@ public class AttachmentService {
     }
 
     @Transactional
-    public AttachmentDto confirmRequestAttachment(Long requestId, Long attachmentId, String username, Set<String> roles) {
+    public AttachmentDto confirmRequestAttachment(Long requestId, Long attachmentId, String username,
+            Set<String> roles) {
         findRequestAndAuthorize(requestId, username, roles);
         Attachment attachment = attachmentRepository.findByIdAndRequest_Id(attachmentId, requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment", "id", attachmentId));
@@ -99,8 +98,7 @@ public class AttachmentService {
             Long commentId,
             Long attachmentId,
             String username,
-            Set<String> roles
-    ) {
+            Set<String> roles) {
         findCommentAndAuthorize(requestId, commentId, username, roles);
         Attachment attachment = attachmentRepository.findByIdAndComment_Id(attachmentId, commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment", "id", attachmentId));
@@ -116,7 +114,8 @@ public class AttachmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<AttachmentDto> listCommentAttachments(Long requestId, Long commentId, String username, Set<String> roles) {
+    public List<AttachmentDto> listCommentAttachments(Long requestId, Long commentId, String username,
+            Set<String> roles) {
         findCommentAndAuthorize(requestId, commentId, username, roles);
         return attachmentRepository.findByComment_IdOrderByCreatedAtAsc(commentId).stream()
                 .map(this::toDto)
@@ -128,12 +127,32 @@ public class AttachmentService {
             Long requestId,
             Long attachmentId,
             String username,
-            Set<String> roles
-    ) {
+            Set<String> roles) {
         findRequestAndAuthorize(requestId, username, roles);
         Attachment attachment = attachmentRepository.findByIdAndRequest_Id(attachmentId, requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment", "id", attachmentId));
         return toDownloadUrlResponse(attachment);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] downloadAttachmentBytes(Long attachmentId) {
+        Attachment attachment = attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Attachment", "id", attachmentId));
+
+        if (attachment.getState() != AttachmentState.ACTIVE) {
+            throw new BadRequestException("Attachment is not ready for download");
+        }
+
+        try {
+            return s3Client.getObject(GetObjectRequest.builder()
+                    .bucket(attachmentProperties.getBucketName())
+                    .key(attachment.getS3ObjectKey())
+                    .build())
+                    .readAllBytes();
+        } catch (Exception e) {
+            log.error("Failed to download attachment bytes for attachmentId={}", attachment.getId(), e);
+            throw new RuntimeException("Failed to download attachment bytes", e);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -142,8 +161,7 @@ public class AttachmentService {
             Long commentId,
             Long attachmentId,
             String username,
-            Set<String> roles
-    ) {
+            Set<String> roles) {
         findCommentAndAuthorize(requestId, commentId, username, roles);
         Attachment attachment = attachmentRepository.findByIdAndComment_Id(attachmentId, commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment", "id", attachmentId));
@@ -164,8 +182,7 @@ public class AttachmentService {
             Long commentId,
             Long attachmentId,
             String username,
-            Set<String> roles
-    ) {
+            Set<String> roles) {
         findCommentAndAuthorize(requestId, commentId, username, roles);
         Attachment attachment = attachmentRepository.findByIdAndComment_Id(attachmentId, commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment", "id", attachmentId));
@@ -199,7 +216,8 @@ public class AttachmentService {
     @Transactional
     public void cleanupOrphanedPendingAttachments() {
         LocalDateTime cutoff = LocalDateTime.now().minus(attachmentProperties.getPendingUploadMaxAge());
-        List<Attachment> expiredPending = attachmentRepository.findByStateAndCreatedAtBefore(AttachmentState.PENDING, cutoff);
+        List<Attachment> expiredPending = attachmentRepository.findByStateAndCreatedAtBefore(AttachmentState.PENDING,
+                cutoff);
         if (expiredPending.isEmpty()) {
             return;
         }
@@ -212,8 +230,7 @@ public class AttachmentService {
             Comment comment,
             User uploader,
             AttachmentUploadUrlRequestDto dto,
-            String normalizedContentType
-    ) {
+            String normalizedContentType) {
         String sanitizedFileName = sanitizeFileName(dto.getFileName());
 
         Attachment attachment = Attachment.builder()
@@ -378,14 +395,16 @@ public class AttachmentService {
     private void enforceRequestAttachmentLimit(Long requestId) {
         long existing = attachmentRepository.countByRequest_IdAndStateIn(requestId, COUNTED_STATES);
         if (existing >= attachmentProperties.getRequestMaxCount()) {
-            throw new BadRequestException("Request attachment limit exceeded (" + attachmentProperties.getRequestMaxCount() + ")");
+            throw new BadRequestException(
+                    "Request attachment limit exceeded (" + attachmentProperties.getRequestMaxCount() + ")");
         }
     }
 
     private void enforceCommentAttachmentLimit(Long commentId) {
         long existing = attachmentRepository.countByComment_IdAndStateIn(commentId, COUNTED_STATES);
         if (existing >= attachmentProperties.getCommentMaxCount()) {
-            throw new BadRequestException("Comment attachment limit exceeded (" + attachmentProperties.getCommentMaxCount() + ")");
+            throw new BadRequestException(
+                    "Comment attachment limit exceeded (" + attachmentProperties.getCommentMaxCount() + ")");
         }
     }
 

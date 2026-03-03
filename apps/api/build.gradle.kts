@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    implementation(platform("software.amazon.awssdk:bom:2.25.53"))
+    implementation(platform("software.amazon.awssdk:bom:2.27.0"))
 
     // Spring Boot starters
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -51,6 +51,7 @@ dependencies {
 
     // AWS
     implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:bedrockruntime")
 
     // Lombok
     compileOnly("org.projectlombok:lombok")

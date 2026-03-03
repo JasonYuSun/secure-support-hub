@@ -293,6 +293,32 @@ components:
           maxLength: 100
           example: billing
 
+    AiActionRequestDto:
+      type: object
+      properties:
+        promptOverride:
+          type: string
+
+    AiSummarizeResponseDto:
+      type: object
+      properties:
+        summary:
+          type: string
+
+    AiSuggestTagsResponseDto:
+      type: object
+      properties:
+        suggestedTags:
+          type: array
+          items:
+            type: string
+
+    AiDraftResponseDto:
+      type: object
+      properties:
+        draft:
+          type: string
+
 
 paths:
   /api/v1/auth/login:
@@ -1081,6 +1107,102 @@ paths:
       responses:
         '204':
           description: Tag unapplied (no-op if not applied)
+        '403':
+          description: No access to this request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Request not found
+
+  /api/v1/requests/{requestId}/ai/summarize:
+    post:
+      summary: Generate an AI summary for a request
+      tags: [AI Assist]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiActionRequestDto'
+      responses:
+        '200':
+          description: Summary generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSummarizeResponseDto'
+        '403':
+          description: No access to this request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Request not found
+
+  /api/v1/requests/{requestId}/ai/suggest-tags:
+    post:
+      summary: Suggest tags for a request via AI
+      tags: [AI Assist]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiActionRequestDto'
+      responses:
+        '200':
+          description: Tags suggested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSuggestTagsResponseDto'
+        '403':
+          description: No access to this request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Request not found
+
+  /api/v1/requests/{requestId}/ai/draft-response:
+    post:
+      summary: Draft a response for a request via AI
+      tags: [AI Assist]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiActionRequestDto'
+      responses:
+        '200':
+          description: Response drafted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiDraftResponseDto'
         '403':
           description: No access to this request
           content:

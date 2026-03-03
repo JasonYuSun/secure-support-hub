@@ -53,6 +53,12 @@ app:
     s3-delete-max-attempts: ${ATTACHMENTS_S3_DELETE_MAX_ATTEMPTS:2}
     allowed-mime-types: ${ATTACHMENTS_ALLOWED_MIME_TYPES:image/jpeg,image/png,image/webp,application/pdf,text/plain,text/csv}
 
+  ai:
+    provider: ${AI_PROVIDER:stub}
+    bedrock:
+      model-id: ${AI_BEDROCK_MODEL_ID:anthropic.claude-sonnet-4-6}
+      aws-region: ${AWS_REGION:ap-southeast-2}
+
 management:
   endpoints:
     web:

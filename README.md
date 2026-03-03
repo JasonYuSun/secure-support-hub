@@ -93,9 +93,9 @@ A production-style web app that lets teams create, triage, and track support req
   - Create, view, search, filter, paginate
   - Status workflow: `OPEN → IN_PROGRESS → RESOLVED → CLOSED`
   - Comments and assignment
-- **AI Assist (Planned for Future Phase)**
-  - Summarize issue description
-  - Suggest tags
+- **AI Assist**
+  - Summarize issue description and comments
+  - Suggest tags (e.g., billing, login, network)
   - Draft a response (never auto-sent, always reviewable)
 
 ### Engineering & operations features
@@ -455,10 +455,10 @@ secure-support-hub/
 - Unit + integration tests
 - Compose + AWS ECS Fargate deployment (`dev` first)
 
-### Phase 2
+### Phase 2 (Completed)
 
 - Attachments backed by S3
-- AI Assist feature
+- AI Assist feature (Summarize, Tags, Draft Response)
 
 ### Phase 3
 

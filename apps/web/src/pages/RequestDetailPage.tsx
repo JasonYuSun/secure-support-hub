@@ -28,6 +28,7 @@ import AttachmentList from '../components/AttachmentList'
 import AssigneeSelect from '../components/AssigneeSelect'
 import AttachmentUploader from '../components/AttachmentUploader'
 import TagPanel from '../components/TagPanel'
+import AiAssistPanel from '../components/AiAssistPanel'
 import { ArrowLeft, MessageSquare, Send, Trash2 } from 'lucide-react'
 
 const STATUS_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
@@ -372,6 +373,13 @@ const RequestDetailPage: React.FC = () => {
                         )}
                     </div>
                 </div>
+
+                <AiAssistPanel
+                    requestId={reqId}
+                    canManage={canManageRequestThread}
+                    isTriageOrAdmin={isTriageOrAdmin}
+                    onUseDraft={setCommentBody}
+                />
 
                 <TagPanel
                     requestId={reqId}

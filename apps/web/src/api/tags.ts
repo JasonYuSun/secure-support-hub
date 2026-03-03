@@ -41,3 +41,18 @@ export const applyRequestTag = async (requestId: number, tagId: number): Promise
 export const unapplyRequestTag = async (requestId: number, tagId: number): Promise<void> => {
     await apiClient.delete(`/requests/${requestId}/tags/${tagId}`)
 }
+
+export const applyTag = async (requestId: number, tagName: string, allowCreate: boolean = false): Promise<void> => {
+    const tags = await fetchTags()
+    let tag = tags.find(t => t.name.toLowerCase() === tagName.toLowerCase())
+    if (!tag) {
+        if (!allowCreate) {
+            throw new Error(`Tag '${tagName}' does not exist in the dictionary.`)
+        }
+        tag = await createTag(tagName)
+    }
+    const reqTags = await fetchRequestTags(requestId)
+    if (!reqTags.find(t => t.id === tag!.id)) {
+        await applyRequestTag(requestId, tag.id)
+    }
+}

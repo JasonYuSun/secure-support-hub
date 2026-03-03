@@ -454,6 +454,28 @@ export async function setupMockApi(page: Page, options?: SetupOptions): Promise<
             return route.fulfill({ status: 204 })
         }
 
+        // AI Assist — Summarize
+        if (seg[0] === 'requests' && seg[2] === 'ai' && seg[3] === 'summarize' && seg.length === 4 && method === 'POST') {
+            return json(route, { summary: '[Stub AI Summary] Generated summary of the request.' })
+        }
+
+        // AI Assist — Suggest Tags
+        if (seg[0] === 'requests' && seg[2] === 'ai' && seg[3] === 'suggest-tags' && seg.length === 4 && method === 'POST') {
+            return json(route, {
+                tags: [
+                    { name: 'billing', reason: 'Mock reason', isNew: false }
+                ],
+                provider: 'stub',
+                model: 'mock',
+                latencyMs: 100
+            })
+        }
+
+        // AI Assist — Draft Response
+        if (seg[0] === 'requests' && seg[2] === 'ai' && seg[3] === 'draft-response' && seg.length === 4 && method === 'POST') {
+            return json(route, { draft: '[Stub AI Draft] Generated draft response.' })
+        }
+
         // Tag dictionary — GET /tags
         if (seg[0] === 'tags' && seg.length === 1 && method === 'GET') {
             const activeTags = Array.from(tags.values())

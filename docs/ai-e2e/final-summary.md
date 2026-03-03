@@ -15,19 +15,19 @@ Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws
 - Request state-machine edge behavior
 
 ## 2) Journey Totals (Role and Priority)
-- Total journeys: 13
+- Total journeys: 16
 - By role:
-  - USER: 6 (J-001, J-004, J-008, J-011, J-012, J-013)
-  - TRIAGE: 3 (J-002, J-005, J-010)
+  - USER: 8 (J-001, J-004, J-008, J-011, J-012, J-013, J-014, J-016)
+  - TRIAGE: 4 (J-002, J-005, J-010, J-015)
   - ADMIN: 2 (J-003, J-006)
   - UNAUTH: 2 (J-007, J-009)
 - By priority:
   - P0: 3
-  - P1: 8
+  - P1: 11
   - P2: 2
 
 ## 3) Run Totals (Latest UPSERT State)
-- PASSED: 13
+- PASSED: 16
 - FAILED: 0
 - BLOCKED: 0
 

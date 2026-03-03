@@ -6,21 +6,24 @@ Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws
 
 ## Batch Summary (UPSERT view)
 
-| Journey ID | Run ID | Latest Result | Last Timestamp |
-| --- | --- | --- | --- |
-| J-001 | RUN-BATCH-20260301-01-J-001 | PASSED | 2026-03-01T19:44:00+11:00 |
-| J-002 | RUN-BATCH-20260301-01-J-002 | PASSED | 2026-03-02T01:00:00+11:00 |
-| J-003 | RUN-BATCH-20260301-01-J-003 | PASSED | 2026-03-01T19:50:00+11:00 |
-| J-004 | RUN-BATCH-20260301-01-J-004 | PASSED | 2026-03-01T19:54:00+11:00 |
-| J-005 | RUN-BATCH-20260301-01-J-005 | PASSED | 2026-03-01T19:58:00+11:00 |
-| J-006 | RUN-BATCH-20260301-01-J-006 | PASSED | 2026-03-01T20:00:00+11:00 |
-| J-007 | RUN-BATCH-20260301-01-J-007 | PASSED | 2026-03-01T20:04:00+11:00 |
-| J-008 | RUN-BATCH-20260301-01-J-008 | PASSED | 2026-03-01T20:07:00+11:00 |
-| J-009 | RUN-BATCH-20260301-01-J-009 | PASSED | 2026-03-01T20:10:00+11:00 |
-| J-010 | RUN-BATCH-20260301-01-J-010 | PASSED | 2026-03-01T20:13:00+11:00 |
-| J-011 | RUN-BATCH-20260301-01-J-011 | PASSED | 2026-03-01T23:10:00+11:00 |
-| J-012 | RUN-BATCH-20260301-01-J-012 | PASSED | 2026-03-01T23:15:00+11:00 |
-| J-013 | RUN-BATCH-20260301-01-J-013 | PASSED | 2026-03-01T20:15:00+11:00 |
+| Journey ID | Run ID                      | Latest Result | Last Timestamp            |
+| ---------- | --------------------------- | ------------- | ------------------------- |
+| J-001      | RUN-BATCH-20260301-01-J-001 | PASSED        | 2026-03-01T19:44:00+11:00 |
+| J-002      | RUN-BATCH-20260301-01-J-002 | PASSED        | 2026-03-02T01:00:00+11:00 |
+| J-003      | RUN-BATCH-20260301-01-J-003 | PASSED        | 2026-03-01T19:50:00+11:00 |
+| J-004      | RUN-BATCH-20260301-01-J-004 | PASSED        | 2026-03-01T19:54:00+11:00 |
+| J-005      | RUN-BATCH-20260301-01-J-005 | PASSED        | 2026-03-01T19:58:00+11:00 |
+| J-006      | RUN-BATCH-20260301-01-J-006 | PASSED        | 2026-03-01T20:00:00+11:00 |
+| J-007      | RUN-BATCH-20260301-01-J-007 | PASSED        | 2026-03-01T20:04:00+11:00 |
+| J-008      | RUN-BATCH-20260301-01-J-008 | PASSED        | 2026-03-01T20:07:00+11:00 |
+| J-009      | RUN-BATCH-20260301-01-J-009 | PASSED        | 2026-03-01T20:10:00+11:00 |
+| J-010      | RUN-BATCH-20260301-01-J-010 | PASSED        | 2026-03-01T20:13:00+11:00 |
+| J-011      | RUN-BATCH-20260301-01-J-011 | PASSED        | 2026-03-01T23:10:00+11:00 |
+| J-012      | RUN-BATCH-20260301-01-J-012 | PASSED        | 2026-03-01T23:15:00+11:00 |
+| J-013      | RUN-BATCH-20260301-01-J-013 | PASSED        | 2026-03-01T20:15:00+11:00 |
+| J-014      | RUN-BATCH-20260301-01-J-014 | PASSED        | 2026-03-03T18:00:00+11:00 |
+| J-015      | RUN-BATCH-20260301-01-J-015 | PASSED        | 2026-03-03T18:00:00+11:00 |
+| J-016      | RUN-BATCH-20260301-01-J-016 | PASSED        | 2026-03-03T18:00:00+11:00 |
 
 ## Run Records
 
@@ -205,3 +208,45 @@ Environment URL: http://securehub-dev-alb-975740166.ap-southeast-2.elb.amazonaws
 - Actual: Comment and request deletion succeeded.
 - Evidence: Deleted entities no longer visible; route returned to dashboard view.
 - Notes: Ownership-based deletion rules passed.
+
+### RUN-BATCH-20260301-01-J-014
+- Batch ID: BATCH-20260301-01
+- Run ID: RUN-BATCH-20260301-01-J-014
+- Journey ID: J-014
+- Timestamp: 2026-03-03T18:00:00+11:00
+- Environment URL: http://localhost:5173
+- Role: USER
+- Result: PASSED
+- Steps executed: Login as USER -> open request detail -> click Summarize Request -> verify output.
+- Expected: AI Summary is generated and displayed.
+- Actual: Summary generated and displayed successfully.
+- Evidence: Playwright matched exact stub response.
+- Notes: Validated via automated E2E test.
+
+### RUN-BATCH-20260301-01-J-015
+- Batch ID: BATCH-20260301-01
+- Run ID: RUN-BATCH-20260301-01-J-015
+- Journey ID: J-015
+- Timestamp: 2026-03-03T18:00:00+11:00
+- Environment URL: http://localhost:5173
+- Role: TRIAGE
+- Result: PASSED
+- Steps executed: Login as TRIAGE -> open request detail -> click Suggest Tags -> click Apply tag badge -> verify tag applied.
+- Expected: Tag is suggested and accurately applies to the request with visual indicator update.
+- Actual: Tag applied successfully.
+- Evidence: Playwright verified badge status transition.
+- Notes: Validated via automated E2E test.
+
+### RUN-BATCH-20260301-01-J-016
+- Batch ID: BATCH-20260301-01
+- Run ID: RUN-BATCH-20260301-01-J-016
+- Journey ID: J-016
+- Timestamp: 2026-03-03T18:00:00+11:00
+- Environment URL: http://localhost:5173
+- Role: USER
+- Result: PASSED
+- Steps executed: Login as USER -> open request detail -> type override prompt -> click Draft Response -> verify output.
+- Expected: Draft response is generated and fills the textarea.
+- Actual: Draft response correctly routed to the textarea.
+- Evidence: Playwright verified textarea content.
+- Notes: Validated via automated E2E test.
