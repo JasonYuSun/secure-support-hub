@@ -2,10 +2,10 @@
 
 This file tracks all bugs discovered during E2E testing.
 
-| Bug ID  | Journey ID | Title                                                   | Severity | Priority | Status      | Owner | Created    |
-| ------- | ---------- | ------------------------------------------------------- | -------- | -------- | ----------- | ----- | ---------- |
-| BUG-001 | J-002      | GET /api/v1/users?role=TRIAGE returns 500 error         | High     | P0       | FIXED_LOCAL | AI    | 2026-03-01 |
-| BUG-002 | J-002      | Missing Assignee/Status controls on Request Detail view | Medium   | P1       | FIXED_LOCAL | AI    | 2026-03-01 |
+| Bug ID  | Journey ID | Title                                                   | Severity | Priority | Status          | Owner | Created    |
+| ------- | ---------- | ------------------------------------------------------- | -------- | -------- | --------------- | ----- | ---------- |
+| BUG-001 | J-002      | GET /api/v1/users?role=TRIAGE returns 500 error         | High     | P0       | VERIFIED_REMOTE | AI    | 2026-03-01 |
+| BUG-002 | J-002      | Missing Assignee/Status controls on Request Detail view | Medium   | P1       | VERIFIED_REMOTE | AI    | 2026-03-01 |
 
 ## BUG-001: GET /api/v1/users?role=TRIAGE returns 500 error
 - **Journey ID**: J-002

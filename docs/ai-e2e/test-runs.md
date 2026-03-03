@@ -15,3 +15,6 @@ This file contains the audit log of all executed E2E test runs.
 | RUN-20260301-009 | J-009      | 2026-03-01T20:10:00+11:00 | Remote      | UNAUTH | PASSED | Invalid login credentials rejected with error message.                           |
 | RUN-20260301-010 | J-010      | 2026-03-01T20:13:00+11:00 | Remote      | TRIAGE | PASSED | CLOSED status hides transition controls in UI.                                   |
 | RUN-20260301-013 | J-013      | 2026-03-01T20:15:00+11:00 | Remote      | USER   | PASSED | Own request and comment successfully deleted.                                    |
+| RUN-20260301-011 | J-011      | 2026-03-01T23:10:00+11:00 | Remote      | USER   | PASSED | S3 text upload, download presign, and delete successful.                         |
+| RUN-20260301-012 | J-012      | 2026-03-01T23:15:00+11:00 | Remote      | USER   | PASSED | Invalid MIME type file (text/html) rejected by frontend.                         |
+| RUN-20260302-REG | J-002      | 2026-03-02T01:00:00+11:00 | Remote      | TRIAGE | PASSED | BUG-001 & BUG-002 confirmed fixed. Full triage path complete.                    |

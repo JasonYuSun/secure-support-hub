@@ -6,8 +6,8 @@ Testing covered all core flows including authentication, Role-Based Access Contr
 
 ## Test Results
 - **Total Journeys**: 12
-- **Passed**: 11
-- **Failed**: 1 (J-002: Triage Happy Path)
+- **Passed**: 12 (After J-002 regression)
+- **Failed**: 0 (J-002 bugs resolved)
 
 ## Identified Issues & Resolutions
 During the execution, the TRIAGE happy path failed due to backend and frontend issues, which were subsequently fixed locally:
@@ -19,7 +19,7 @@ During the execution, the TRIAGE happy path failed due to backend and frontend i
    - *Issue*: The detail page (`/requests/:id`) had no way to transition request status (e.g. OPEN to IN_PROGRESS).
    - *Fix*: The `STATUS_TRANSITIONS` buttons were added to the UI for TRIAGE and ADMIN roles. (Assignee dropdown visibility was concurrently fixed by BUG-001).
 
-These local fixes require a backend and frontend deployment to the remote environment for a full regression pass.
+These fixes have been deployed by the user and **verified in production** via a final regression subagent pass. All bug statuses are now `VERIFIED_REMOTE`.
 
 ## Successes
 - Core functionality of Users creating and commenting requests works flawlessly.
@@ -28,6 +28,4 @@ These local fixes require a backend and frontend deployment to the remote enviro
 - AWS S3 attachment handling functions correctly, including type validation boundaries.
 
 ## Next Steps
-1. Deploy the local fixes for BUG-001 and BUG-002 to the remote ALB environment.
-2. Conduct a regression test on J-002 (TRIAGE Happy Path) to verify those workflows on remote.
-3. Clean up any lingering data points created during the test run.
+All targeted automated end-to-end testing phases are complete. The application successfully fulfills its spec requirements under test. Further activities can transition to fixing known compiler/lint warnings (e.g., specific to the `AttachmentService`), increasing unit test coverages, or addressing architectural debts identified outside the E2E boundary.
