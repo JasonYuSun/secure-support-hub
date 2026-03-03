@@ -114,7 +114,16 @@ const AiDraftCard: React.FC<AiDraftCardProps> = ({ requestId, onUseDraft }) => {
                                 <button
                                     className="btn btn-primary"
                                     style={{ padding: '4px 10px', fontSize: 12 }}
-                                    onClick={() => onUseDraft(draft)}
+                                    onClick={() => {
+                                        onUseDraft(draft)
+                                        setTimeout(() => {
+                                            const el = document.getElementById('comment-body')
+                                            if (el) {
+                                                el.focus()
+                                                el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                                            }
+                                        }, 100)
+                                    }}
                                 >
                                     Use Draft
                                 </button>

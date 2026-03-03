@@ -14,6 +14,7 @@ const AiTagsCard: React.FC<AiTagsCardProps> = ({ requestId }) => {
     const [error, setError] = useState<string | null>(null)
     const [metaInfo, setMetaInfo] = useState<string | null>(null)
     const [applyingTag, setApplyingTag] = useState<string | null>(null)
+    const [appliedTags, setAppliedTags] = useState<Set<string>>(new Set())
 
     const queryClient = useQueryClient()
 
@@ -37,7 +38,11 @@ const AiTagsCard: React.FC<AiTagsCardProps> = ({ requestId }) => {
         try {
             await applyTag(requestId, tag.name, tag.isNew)
             queryClient.invalidateQueries({ queryKey: ['request-tags', requestId] })
-            // visually remove it from suggestions or just show success? Let's just keep it simple.
+            setAppliedTags(prev => {
+                const updated = new Set(prev)
+                updated.add(tag.name)
+                return updated
+            })
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : (err as { response?: { data?: { message?: string } } })?.response?.data?.message
             alert(message || 'Failed to apply tag')
@@ -83,10 +88,10 @@ const AiTagsCard: React.FC<AiTagsCardProps> = ({ requestId }) => {
                                 <button
                                     className="btn btn-secondary"
                                     style={{ padding: '4px 8px', fontSize: 11 }}
-                                    disabled={applyingTag === tag.name}
+                                    disabled={applyingTag === tag.name || appliedTags.has(tag.name)}
                                     onClick={() => handleApplyTag(tag)}
                                 >
-                                    {applyingTag === tag.name ? 'Applying...' : (tag.isNew ? 'Create & Apply' : 'Apply Tag')}
+                                    {appliedTags.has(tag.name) ? 'Applied ✓' : (applyingTag === tag.name ? 'Applying...' : (tag.isNew ? 'Create & Apply' : 'Apply Tag'))}
                                 </button>
                             </div>
                         ))}
