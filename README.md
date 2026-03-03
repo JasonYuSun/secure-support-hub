@@ -378,6 +378,34 @@ Execution checklist:
   - `Phase 6`: runtime configuration mapping (secret vs non-secret split)
   - `Phase 7`: GitHub OIDC + app CD + Terraform pipeline (IaC)
 
+Bedrock model access (ad hoc, dev/demo):
+
+- Prerequisites:
+  - AWS CLI v2 with Bedrock support (`aws --version`, recommended `>= 2.27`)
+  - Logged in profile (this repo currently uses `securehub`)
+- Canonical model for AI Assist MVP: `anthropic.claude-sonnet-4-6`
+
+```bash
+export AWS_PROFILE=securehub
+export AWS_REGION=ap-southeast-2
+MODEL_ID="anthropic.claude-sonnet-4-6"
+
+# Enable model access (idempotent)
+scripts/bedrock/enable-model-access.sh \
+  --model-id "$MODEL_ID" \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE" \
+  --task-role-name securehub-dev-ecs-task-role \
+  --use-case-file scripts/bedrock/anthropic-use-case.sample.json
+
+# Disable model access + attach deny policy for cost guard
+scripts/bedrock/disable-model-access.sh \
+  --model-id "$MODEL_ID" \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE" \
+  --task-role-name securehub-dev-ecs-task-role
+```
+
 ### AWS services used
 
 Terraform provisions:

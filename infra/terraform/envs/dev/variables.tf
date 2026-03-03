@@ -18,3 +18,15 @@ variable "github_repo" {
   type        = string
   description = "GitHub repository name"
 }
+
+variable "ai_provider" {
+  type        = string
+  description = "AI provider for API runtime"
+  default     = "bedrock"
+}
+
+variable "ai_bedrock_model_id" {
+  type        = string
+  description = "Bedrock model ID used by API runtime"
+  default     = "anthropic.claude-sonnet-4-6"
+}

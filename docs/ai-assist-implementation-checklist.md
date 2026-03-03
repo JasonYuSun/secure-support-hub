@@ -38,7 +38,7 @@
 - [x] Tagging foundation is implemented (DB schema, backend APIs, frontend panel, OpenAPI, and E2E coverage).
 - [x] README includes AI Assist in scope, but marks it as future phase.
 - [x] Attachment metadata and S3 private object flow are available for building AI context from files.
-- [x] Terraform/ECS currently has no AI-specific runtime config or Bedrock invoke permissions in task role.
+- [x] Terraform code now includes AI runtime config (`ai_provider`, `ai_bedrock_model_id`) and Bedrock invoke permissions in ECS task role; apply/verification status is tracked in Phase 0.3.
 - [x] Bedrock model-access toggle scripts exist in repo (`scripts/bedrock/enable-model-access.sh`, `scripts/bedrock/disable-model-access.sh`) and are documented in deployment runbook for ad hoc usage.
 
 ---
@@ -121,31 +121,31 @@ Note:
 - [x] Ensure bootstrap handles provider-specific one-time prerequisites (for example Anthropic use-case submission) in an auditable way.
 - [x] Ensure bootstrap handles third-party model agreement/subscription flow where required.
 - [x] Add scripted Bedrock cost guard toggle for demo idle windows (`scripts/bedrock/disable-model-access.sh`) with runtime deny policy option.
-- [ ] Lock model choice for MVP (for example Claude 3.5 Sonnet on Bedrock) and record canonical `modelId` used by backend config.
+- [x] Lock model choice for MVP and record canonical `modelId` used by backend config: `anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6).
 
 ### 0.2 Terraform changes for ECS runtime
 
-- [ ] Add AI runtime variables to Terraform `ecs` module (minimum):
+- [x] Add AI runtime variables to Terraform `ecs` module (minimum):
   - `ai_provider` (dev default `bedrock`)
   - `ai_bedrock_model_id`
   - optional flags for multimodal support/capability expectations
-- [ ] Wire those variables into API task definition environment variables.
-- [ ] Extend ECS task role IAM policy with Bedrock runtime permissions required by implementation:
+- [x] Wire those variables into API task definition environment variables.
+- [x] Extend ECS task role IAM policy with Bedrock runtime permissions required by implementation:
   - `bedrock:InvokeModel`
   - `bedrock:InvokeModelWithResponseStream` (only if streaming path is used)
   - `bedrock:Converse`
   - `bedrock:ConverseStream` (only if converse streaming path is used)
-- [ ] Scope Bedrock permissions to approved model resources where feasible; if wildcard is required by API behavior, document and justify explicitly.
-- [ ] Update `infra/terraform/envs/dev/main.tf` to pass AI variables into module `ecs`.
-- [ ] Expose relevant AI runtime outputs (or document variable mapping) so deployment/runbook can be validated quickly.
-- [ ] Add explicit drift guard: no AI runtime/IAM changes are applied manually in console; all changes flow through Terraform plan/apply.
+- [x] Scope Bedrock permissions to approved model resources where feasible; if wildcard is required by API behavior, document and justify explicitly.
+- [x] Update `infra/terraform/envs/dev/main.tf` to pass AI variables into module `ecs`.
+- [x] Expose relevant AI runtime outputs (or document variable mapping) so deployment/runbook can be validated quickly.
+- [x] Add explicit drift guard: no AI runtime/IAM changes are applied manually in console; all changes flow through Terraform plan/apply.
 
 ### 0.3 Apply and verify
 
-- [ ] Run `terraform plan` and `terraform apply` in `infra/terraform/envs/dev`.
-- [ ] Run Bedrock model-access bootstrap automation (`scripts/bedrock/enable-model-access.sh`) as a documented ad hoc infra bootstrap command and capture output artifact.
-- [ ] Verify applied ECS task definition contains AI env vars and no plaintext secrets.
-- [ ] Verify running ECS API task can call Bedrock model successfully with IAM role credentials (no static access keys).
+- [x] Run `terraform plan` and `terraform apply` in `infra/terraform/envs/dev`.
+- [x] Run Bedrock model-access bootstrap automation (`scripts/bedrock/enable-model-access.sh`) as a documented ad hoc infra bootstrap command and capture output artifact.
+- [x] Verify applied ECS task definition contains AI env vars and no plaintext secrets.
+- [x] Verify running ECS API task can call Bedrock model successfully with IAM role credentials (no static access keys).
 
 ---
 

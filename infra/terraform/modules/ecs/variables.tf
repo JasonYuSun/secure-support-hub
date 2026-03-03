@@ -84,3 +84,14 @@ variable "aws_s3_endpoint" {
   description = "Optional S3 endpoint override (for LocalStack/local development)"
   default     = ""
 }
+
+variable "ai_provider" {
+  type        = string
+  description = "AI provider for API runtime (for example: stub, bedrock)"
+  default     = "bedrock"
+}
+
+variable "ai_bedrock_model_id" {
+  type        = string
+  description = "Bedrock model ID (or model/inference profile ARN) used by API runtime"
+}

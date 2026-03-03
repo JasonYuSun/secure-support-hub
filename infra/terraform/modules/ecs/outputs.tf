@@ -17,3 +17,19 @@ output "api_task_family" {
 output "web_task_family" {
   value = aws_ecs_task_definition.web.family
 }
+
+output "task_role_name" {
+  value = aws_iam_role.ecs_task_role.name
+}
+
+output "task_role_arn" {
+  value = aws_iam_role.ecs_task_role.arn
+}
+
+output "ai_provider" {
+  value = var.ai_provider
+}
+
+output "ai_bedrock_model_id" {
+  value = var.ai_bedrock_model_id
+}

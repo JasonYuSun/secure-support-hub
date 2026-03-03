@@ -78,7 +78,9 @@ module "ecs" {
   api_image_url = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/secure-support-hub-api"
   web_image_url = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/secure-support-hub-web"
 
-  api_cors_origin = "http://${module.alb.alb_dns_name}"
+  api_cors_origin     = "http://${module.alb.alb_dns_name}"
+  ai_provider         = var.ai_provider
+  ai_bedrock_model_id = var.ai_bedrock_model_id
 }
 
 module "oidc" {

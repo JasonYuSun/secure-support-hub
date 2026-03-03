@@ -21,13 +21,17 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
 }
 
 locals {
+  bedrock_model_resource_arn = startswith(var.ai_bedrock_model_id, "arn:") ? var.ai_bedrock_model_id : "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.ai_bedrock_model_id}"
+
   api_container_environment = concat([
     { name = "SPRING_PROFILES_ACTIVE", value = "prod" },
     { name = "CORS_ALLOWED_ORIGINS", value = var.api_cors_origin },
     { name = "JWT_EXPIRATION_MS", value = "86400000" },
     { name = "DB_URL", value = "jdbc:postgresql://${var.db_host}:${var.db_port}/${var.db_name}" },
     { name = "AWS_REGION", value = var.aws_region },
-    { name = "AWS_S3_ATTACHMENT_BUCKET_NAME", value = var.attachment_bucket_name }
+    { name = "AWS_S3_ATTACHMENT_BUCKET_NAME", value = var.attachment_bucket_name },
+    { name = "AI_PROVIDER", value = var.ai_provider },
+    { name = "AI_BEDROCK_MODEL_ID", value = var.ai_bedrock_model_id }
     ],
     var.aws_s3_endpoint != "" ? [{ name = "AWS_S3_ENDPOINT", value = var.aws_s3_endpoint }] : []
   )
@@ -134,6 +138,33 @@ resource "aws_iam_policy" "ecs_attachment_s3_policy" {
 resource "aws_iam_role_policy_attachment" "ecs_attachment_s3_policy" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.ecs_attachment_s3_policy.arn
+}
+
+resource "aws_iam_policy" "ecs_bedrock_policy" {
+  name        = "securehub-${var.environment}-ecs-bedrock-policy"
+  description = "Policy for ECS task role to invoke approved Bedrock model"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowInvokeApprovedBedrockModel"
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+          "bedrock:Converse",
+          "bedrock:ConverseStream"
+        ]
+        Resource = [local.bedrock_model_resource_arn]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_bedrock_policy" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ecs_bedrock_policy.arn
 }
 
 # JWT Secret stored in SSM

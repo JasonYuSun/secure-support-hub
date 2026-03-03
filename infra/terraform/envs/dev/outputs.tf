@@ -37,3 +37,23 @@ output "attachments_bucket_arn" {
   description = "ARN of the S3 bucket for request/comment attachments"
   value       = module.s3_attachments.bucket_arn
 }
+
+output "ecs_task_role_name" {
+  description = "ECS task role name used by API runtime"
+  value       = module.ecs.task_role_name
+}
+
+output "ecs_task_role_arn" {
+  description = "ECS task role ARN used by API runtime"
+  value       = module.ecs.task_role_arn
+}
+
+output "ai_provider" {
+  description = "AI provider configured for API runtime"
+  value       = module.ecs.ai_provider
+}
+
+output "ai_bedrock_model_id" {
+  description = "Bedrock model id configured for API runtime"
+  value       = module.ecs.ai_bedrock_model_id
+}

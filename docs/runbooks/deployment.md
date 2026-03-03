@@ -161,20 +161,25 @@ Rotating the JWT secret invalidates all active user sessions.
 Use these scripts as ad hoc operator actions when AI Assist is enabled (not as an always-on CD pipeline step):
 
 ```bash
+export AWS_PROFILE=securehub
+export AWS_REGION=ap-southeast-2
+MODEL_ID="anthropic.claude-sonnet-4-6"
+
 # Enable model access (idempotent workflow)
 scripts/bedrock/enable-model-access.sh \
-  --model-id <bedrock-model-id> \
+  --model-id "$MODEL_ID" \
   --region ap-southeast-2 \
   --task-role-name securehub-dev-ecs-task-role \
   --use-case-file scripts/bedrock/anthropic-use-case.sample.json
 
 # Disable model access and attach runtime deny policy for cost guard
 scripts/bedrock/disable-model-access.sh \
-  --model-id <bedrock-model-id> \
+  --model-id "$MODEL_ID" \
   --region ap-southeast-2 \
   --task-role-name securehub-dev-ecs-task-role
 ```
 
 Notes:
+- Canonical MVP model ID: `anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6).
 - For reliable cost protection, keep the deny policy attached when demo environment is idle.
 - Deleting model agreement alone may not permanently block future model usage if runtime can invoke Bedrock.
