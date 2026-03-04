@@ -97,6 +97,7 @@ A production-style web app that lets teams create, triage, and track support req
   - Three independent actions: `summarize`, `suggest-tags`, `draft-response`
   - Context includes request title/description, chronological comments, and attachment context
     (`text/plain`, `text/csv`, plus Bedrock multimodal payload for PDF/images)
+  - UI role gate: `Suggest Tags` is visible to `TRIAGE` / `ADMIN`; summarize and draft are available on accessible requests
   - Tag suggestions are reconciled with the tag dictionary (existing tags vs new candidates)
   - New dictionary tag creation is restricted to `TRIAGE` / `ADMIN`
   - Draft response is user-editable and only pre-fills the comment input (`Use Draft`), never auto-posts
@@ -152,13 +153,15 @@ Detailed runtime architecture documentation:
 - Flyway (schema migrations)
 - Testcontainers (integration tests)
 - springdoc-openapi (OpenAPI generation)
+- AWS SDK v2 (`s3`, `bedrockruntime`)
 
 ### Infra & Ops
 
 - Docker + Docker Compose (local)
+- LocalStack (optional local S3 testing profile)
 - AWS ECS Fargate (dev-first deployment target)
 - GitHub Actions CI/CD
-- AWS: ECR/ECS Fargate/RDS/ALB/CloudWatch/S3
+- AWS: ECR/ECS Fargate/RDS/ALB/CloudWatch/S3/Bedrock
 
 ---
 
@@ -335,9 +338,9 @@ The canonical contract is published via OpenAPI:
 
 - Input validation on all writes
 - Centralized exception handling (no stack traces leaked)
-- Rate limiting on auth endpoints
 - Audit logging for sensitive state changes
 - Secrets are never committed; use env vars / AWS Secrets Manager / SSM Parameter Store
+- Bedrock runtime access is controlled by ECS task role IAM plus repo-managed enable/disable scripts
 
 ---
 
@@ -349,7 +352,6 @@ This project aims for practical, production-like coverage.
 
 - Unit tests: service/business rules, mappers, validators
 - Integration tests (Testcontainers): DB migrations, repositories, controllers
-- Contract tests: validate API expectations across versions
 - AI integration tests include suggest-tags dictionary reconciliation and multi-tag apply idempotency
 
 ```bash
@@ -359,8 +361,7 @@ cd apps/api
 
 ### Frontend
 
-- Component tests
-- E2E tests with Playwright
+- E2E tests with Playwright (mocked API/S3 flows)
 - AI E2E flows include summarize, suggest-tags (existing + new), draft response, and role-gating checks
 
 ```bash
@@ -375,9 +376,9 @@ npm run test:e2e
 GitHub Actions workflows (in `.github/workflows/`) typically include:
 
 - **Terraform (IaC):** `fmt/validate/plan` on infra PRs, controlled `apply` on `main` (OIDC, no static AWS keys)
-- **Frontend:** install → lint → test → build
-- **Backend:** build → test → security scan → Docker build
-- **Image publishing:** push to registry (e.g., GHCR/ECR) on main branch
+- **Frontend:** install → lint → type-check → build → Playwright E2E
+- **Backend:** test → build JAR → Docker build (dry run in CI workflow)
+- **Image publishing:** push images to ECR on `main` via deploy workflow
 - **Deployment:** build/push images and update ECS task definitions/services (dev first)
 
 Sensitive data handling baseline:
