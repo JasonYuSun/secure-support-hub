@@ -82,10 +82,11 @@ const AiDraftCard: React.FC<AiDraftCardProps> = ({ requestId, onUseDraft }) => {
                                 width: '100%',
                                 minHeight: 120,
                                 padding: 12,
-                                backgroundColor: 'white',
+                                backgroundColor: 'var(--color-surface-2)',
                                 border: '1px solid var(--color-border)',
                                 borderRadius: 4,
                                 fontSize: 13,
+                                color: 'var(--color-text)',
                                 lineHeight: 1.6,
                                 resize: 'vertical'
                             }}

@@ -102,7 +102,7 @@ const AiTagsCard: React.FC<AiTagsCardProps> = ({ requestId }) => {
                     <div className="flex flex-col gap-2" style={{ marginTop: 12 }}>
                         {suggestions.length === 0 && <p className="text-sm text-muted">No tags suggested.</p>}
                         {suggestions.map((tag, idx) => (
-                            <div key={idx} className="flex flex-col" style={{ padding: '8px 12px', backgroundColor: 'white', border: '1px solid var(--color-border)', borderRadius: 4 }}>
+                            <div key={idx} className="flex flex-col" style={{ padding: '8px 12px', backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 4 }}>
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <div className="flex items-center gap-2">

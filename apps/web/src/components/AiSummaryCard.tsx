@@ -50,7 +50,7 @@ const AiSummaryCard: React.FC<AiSummaryCardProps> = ({ requestId }) => {
 
             {summary && (
                 <div>
-                    <div style={{ padding: 12, backgroundColor: 'white', border: '1px solid var(--color-border)', borderRadius: 4, whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6 }}>
+                    <div style={{ padding: 12, backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 4, whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6 }}>
                         {summary}
                     </div>
 
