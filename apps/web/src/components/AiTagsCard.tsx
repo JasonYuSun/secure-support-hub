@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { Tag as TagIcon, Wand2 } from 'lucide-react'
 import { suggestTags, TagSuggestion } from '../api/aiApi'
-import { applyTag } from '../api/tags'
+import { applyRequestTag, createTag } from '../api/tags'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '../auth/AuthContext'
 
 interface AiTagsCardProps {
     requestId: number
@@ -13,14 +14,21 @@ const AiTagsCard: React.FC<AiTagsCardProps> = ({ requestId }) => {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [metaInfo, setMetaInfo] = useState<string | null>(null)
-    const [applyingTag, setApplyingTag] = useState<string | null>(null)
-    const [appliedTags, setAppliedTags] = useState<Set<string>>(new Set())
+    // Track applying/applied state per index to avoid name-collision bugs
+    const [applyingIdx, setApplyingIdx] = useState<number | null>(null)
+    const [appliedIdxs, setAppliedIdxs] = useState<Set<number>>(new Set())
+    const [tagErrors, setTagErrors] = useState<Record<number, string>>({})
 
     const queryClient = useQueryClient()
+    const { hasRole } = useAuth()
+
+    const canCreateTag = hasRole('TRIAGE') || hasRole('ADMIN')
 
     const handleSuggest = async () => {
         setIsLoading(true)
         setError(null)
+        setAppliedIdxs(new Set())
+        setTagErrors({})
         try {
             const data = await suggestTags(requestId)
             setSuggestions(data.tags)
@@ -33,21 +41,38 @@ const AiTagsCard: React.FC<AiTagsCardProps> = ({ requestId }) => {
         }
     }
 
-    const handleApplyTag = async (tag: TagSuggestion) => {
-        setApplyingTag(tag.name)
+    const handleApplyTag = async (tag: TagSuggestion, idx: number) => {
+        setApplyingIdx(idx)
+        setTagErrors(prev => { const next = { ...prev }; delete next[idx]; return next })
         try {
-            await applyTag(requestId, tag.name, tag.isNew)
+            if (!tag.isNew && tag.existingTagId != null) {
+                // Fast path: tag exists in dictionary → apply directly by ID (no name lookup race)
+                await applyRequestTag(requestId, tag.existingTagId)
+            } else {
+                // New tag: only TRIAGE/ADMIN can create
+                if (!canCreateTag) {
+                    setTagErrors(prev => ({
+                        ...prev,
+                        [idx]: "You need Triage or Admin role to create new tags. Ask a triage agent to add this tag to the dictionary first.",
+                    }))
+                    return
+                }
+                const created = await createTag(tag.name)
+                await applyRequestTag(requestId, created.id)
+            }
+
             queryClient.invalidateQueries({ queryKey: ['request-tags', requestId] })
-            setAppliedTags(prev => {
+            setAppliedIdxs(prev => {
                 const updated = new Set(prev)
-                updated.add(tag.name)
+                updated.add(idx)
                 return updated
             })
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-            alert(message || 'Failed to apply tag')
+            const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+                || (err instanceof Error ? err.message : 'Failed to apply tag')
+            setTagErrors(prev => ({ ...prev, [idx]: message }))
         } finally {
-            setApplyingTag(null)
+            setApplyingIdx(null)
         }
     }
 
@@ -77,22 +102,35 @@ const AiTagsCard: React.FC<AiTagsCardProps> = ({ requestId }) => {
                     <div className="flex flex-col gap-2" style={{ marginTop: 12 }}>
                         {suggestions.length === 0 && <p className="text-sm text-muted">No tags suggested.</p>}
                         {suggestions.map((tag, idx) => (
-                            <div key={idx} className="flex items-center justify-between" style={{ padding: '8px 12px', backgroundColor: 'white', border: '1px solid var(--color-border)', borderRadius: 4 }}>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <span style={{ fontWeight: 600, fontSize: 13 }}>{tag.name}</span>
-                                        {tag.isNew && <span style={{ fontSize: 10, backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', padding: '2px 6px', borderRadius: 10 }}>NEW</span>}
+                            <div key={idx} className="flex flex-col" style={{ padding: '8px 12px', backgroundColor: 'white', border: '1px solid var(--color-border)', borderRadius: 4 }}>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span style={{ fontWeight: 600, fontSize: 13 }}>{tag.name}</span>
+                                            {tag.isNew && <span style={{ fontSize: 10, backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', padding: '2px 6px', borderRadius: 10 }}>NEW</span>}
+                                        </div>
+                                        <div className="text-xs text-muted" style={{ marginTop: 2 }}>{tag.reason}</div>
                                     </div>
-                                    <div className="text-xs text-muted" style={{ marginTop: 2 }}>{tag.reason}</div>
+                                    <button
+                                        className="btn btn-secondary"
+                                        style={{ padding: '4px 8px', fontSize: 11 }}
+                                        disabled={applyingIdx === idx || appliedIdxs.has(idx)}
+                                        onClick={() => handleApplyTag(tag, idx)}
+                                    >
+                                        {appliedIdxs.has(idx)
+                                            ? 'Applied ✓'
+                                            : applyingIdx === idx
+                                                ? 'Applying...'
+                                                : tag.isNew
+                                                    ? 'Create & Apply'
+                                                    : 'Apply Tag'}
+                                    </button>
                                 </div>
-                                <button
-                                    className="btn btn-secondary"
-                                    style={{ padding: '4px 8px', fontSize: 11 }}
-                                    disabled={applyingTag === tag.name || appliedTags.has(tag.name)}
-                                    onClick={() => handleApplyTag(tag)}
-                                >
-                                    {appliedTags.has(tag.name) ? 'Applied ✓' : (applyingTag === tag.name ? 'Applying...' : (tag.isNew ? 'Create & Apply' : 'Apply Tag'))}
-                                </button>
+                                {tagErrors[idx] && (
+                                    <div className="text-xs" style={{ color: 'var(--color-error)', marginTop: 4 }}>
+                                        {tagErrors[idx]}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

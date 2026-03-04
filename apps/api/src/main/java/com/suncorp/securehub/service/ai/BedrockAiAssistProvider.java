@@ -1,5 +1,7 @@
 package com.suncorp.securehub.service.ai;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.suncorp.securehub.dto.AiContextDto;
 import com.suncorp.securehub.dto.AiDraftResponseDto;
 import com.suncorp.securehub.dto.AiSuggestTagsResponseDto;
@@ -26,6 +28,7 @@ public class BedrockAiAssistProvider implements AiAssistProvider {
 
     private final String modelId;
     private final BedrockRuntimeClient bedrockClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public BedrockAiAssistProvider(
             @Value("${app.ai.bedrock.model-id:anthropic.claude-sonnet-4-6}") String modelId,
@@ -61,7 +64,12 @@ public class BedrockAiAssistProvider implements AiAssistProvider {
 
     @Override
     public AiSuggestTagsResponseDto suggestTags(AiContextDto context) {
-        String prompt = "Please suggest up to 3 short category tags for the following support request. Format your response strictly as a comma-separated list of tag names. If the request content is in Chinese, translate your suggested tags into Chinese.\n\n"
+        // Request strict JSON output from the model so we can parse reliably
+        String prompt = "Suggest up to 3 short category tags for the following support request.\n"
+                + "Respond ONLY with valid JSON in this exact format, no other text:\n"
+                + "{\"tags\":[{\"name\":\"tag-name\",\"reason\":\"brief reason\"},{\"name\":\"tag2\",\"reason\":\"reason\"}]}\n"
+                + "Rules: tag names must be lowercase, 1-5 words, hyphen-separated where appropriate. "
+                + "If the request is in Chinese, use Chinese tag names.\n\n"
                 + buildXmlContext(context);
 
         if (context.getUserPrompt() != null && !context.getUserPrompt().isEmpty()) {
@@ -69,22 +77,12 @@ public class BedrockAiAssistProvider implements AiAssistProvider {
         }
 
         long start = System.currentTimeMillis();
-        String response = callConverse(prompt, context);
+        String rawResponse = callConverse(prompt, context);
         long latency = System.currentTimeMillis() - start;
 
-        List<AiSuggestTagsResponseDto.TagSuggestion> tags = new ArrayList<>();
-        if (response != null && !response.isEmpty()) {
-            for (String ts : response.split(",")) {
-                String tagName = ts.trim().toLowerCase();
-                if (!tagName.isEmpty()) {
-                    tags.add(AiSuggestTagsResponseDto.TagSuggestion.builder()
-                            .name(tagName)
-                            .isNew(true)
-                            .reason("Suggested by AI")
-                            .build());
-                }
-            }
-        }
+        // Provider returns raw name+reason only; AiAssistService will reconcile with
+        // dictionary
+        List<AiSuggestTagsResponseDto.TagSuggestion> tags = parseTagsFromResponse(rawResponse);
 
         return AiSuggestTagsResponseDto.builder()
                 .tags(tags)
@@ -94,6 +92,59 @@ public class BedrockAiAssistProvider implements AiAssistProvider {
                 .latencyMs(latency)
                 .generatedAt(OffsetDateTime.now())
                 .build();
+    }
+
+    /**
+     * Parse model output into TagSuggestion list.
+     * Strategy 1: Try to parse as JSON {"tags":[{"name":...,"reason":...},...]}
+     * Strategy 2: Fall back to comma-split for backward compatibility
+     * isNew / existingTagId are NOT set here — reconciliation happens in
+     * AiAssistService.
+     */
+    private List<AiSuggestTagsResponseDto.TagSuggestion> parseTagsFromResponse(String raw) {
+        List<AiSuggestTagsResponseDto.TagSuggestion> tags = new ArrayList<>();
+        if (raw == null || raw.isBlank())
+            return tags;
+
+        // Strategy 1: JSON parse
+        try {
+            // Strip markdown code fences if present
+            String cleaned = raw.strip();
+            if (cleaned.startsWith("```")) {
+                cleaned = cleaned.replaceAll("^```[a-zA-Z]*\\n?", "").replaceAll("```$", "").strip();
+            }
+            JsonNode root = objectMapper.readTree(cleaned);
+            JsonNode tagsNode = root.get("tags");
+            if (tagsNode != null && tagsNode.isArray()) {
+                for (JsonNode tagNode : tagsNode) {
+                    String name = tagNode.has("name") ? tagNode.get("name").asText("").trim() : null;
+                    String reason = tagNode.has("reason") ? tagNode.get("reason").asText("Suggested by AI")
+                            : "Suggested by AI";
+                    if (name != null && !name.isEmpty()) {
+                        tags.add(AiSuggestTagsResponseDto.TagSuggestion.builder()
+                                .name(name)
+                                .reason(reason)
+                                .build());
+                    }
+                }
+                if (!tags.isEmpty())
+                    return tags;
+            }
+        } catch (Exception e) {
+            log.debug("Bedrock response was not JSON, falling back to comma-split: {}", e.getMessage());
+        }
+
+        // Strategy 2: comma-split fallback
+        for (String part : raw.split(",")) {
+            String name = part.trim().toLowerCase();
+            if (!name.isEmpty()) {
+                tags.add(AiSuggestTagsResponseDto.TagSuggestion.builder()
+                        .name(name)
+                        .reason("Suggested by AI")
+                        .build());
+            }
+        }
+        return tags;
     }
 
     @Override

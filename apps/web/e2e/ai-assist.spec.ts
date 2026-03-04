@@ -26,25 +26,66 @@ test.describe('AI Assist Features', () => {
         await expect(page.getByText('[Stub AI Summary] Generated summary of the request.')).toBeVisible()
     })
 
-    test('[J-015] suggest and apply tags', async ({ page }) => {
+    test('[J-015] apply 2 AI-suggested tags sequentially (existing + new) as TRIAGE', async ({ page }) => {
         const mock = await setupMockApi(page)
         const requestId = mock.seedRequest({
             title: 'AI Tag Test',
             description: 'Test description for tags.',
         })
+        // Seed "billing" tag — mock suggest-tags will return this as existing (isNew=false)
         mock.seedTag('billing')
 
-        // Login as TRIAGE to apply tags
+        // Login as TRIAGE who can also create new tags
         await login(page, 'triage')
         await page.goto(`/requests/${requestId}`)
 
+        // Open AI tag suggestion panel
         await page.getByRole('button', { name: 'Suggest Tags' }).click()
         await page.getByRole('button', { name: 'Generate' }).click()
-        const suggestTagBadge = page.locator('div').filter({ hasText: 'billing' }).getByRole('button', { name: 'Apply Tag' }).first()
-        await expect(suggestTagBadge).toBeVisible()
-        await suggestTagBadge.click()
 
+        // --- Apply existing tag (isNew=false, existingTagId set) ---
+        const applyExistingBtn = page.locator('div').filter({ hasText: 'billing' }).getByRole('button', { name: 'Apply Tag' }).first()
+        await expect(applyExistingBtn).toBeVisible()
+        await applyExistingBtn.click()
+        // Tag chip appears in the applied tags panel
         await expect(page.getByRole('button', { name: 'Remove tag billing' })).toBeVisible()
+
+        // --- Apply new tag (isNew=true) ---
+        // "ai-assistant" is always returned as isNew=true by the updated mock
+        const createAndApplyBtn = page.locator('div').filter({ hasText: 'ai-assistant' }).getByRole('button', { name: 'Create & Apply' }).first()
+        await expect(createAndApplyBtn).toBeVisible()
+        await createAndApplyBtn.click()
+        // Second tag chip also appears
+        await expect(page.getByRole('button', { name: 'Remove tag ai-assistant' })).toBeVisible()
+
+        // Both buttons must now show "Applied ✓" and be disabled
+        // (Button text changes after apply, so we locate by the new text)
+        await expect(
+            page.locator('div').filter({ hasText: 'billing' }).getByRole('button', { name: 'Applied ✓' }).first()
+        ).toBeDisabled()
+        await expect(
+            page.locator('div').filter({ hasText: 'ai-assistant' }).getByRole('button', { name: 'Applied ✓' }).first()
+        ).toBeDisabled()
+    })
+
+    test('[J-015b] plain USER cannot see Suggest Tags button — RBAC gate in AiAssistPanel', async ({ page }) => {
+        const mock = await setupMockApi(page)
+        const requestId = mock.seedRequest({
+            title: 'AI Tag RBAC Test',
+            description: 'Testing role restriction on AI tag suggestion.',
+        })
+
+        // Login as plain USER (no TRIAGE/ADMIN role)
+        await login(page, 'user')
+        await page.goto(`/requests/${requestId}`)
+
+        // AI Assist panel is visible (USER can still summarize + draft)
+        await expect(page.getByRole('heading', { name: /AI Assist/i })).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Summarize' })).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Draft Response' })).toBeVisible()
+
+        // "Suggest Tags" must NOT be visible for plain USER — this is the RBAC gate
+        await expect(page.getByRole('button', { name: 'Suggest Tags' })).not.toBeVisible()
     })
 
     test('[J-016] draft response generation', async ({ page }) => {

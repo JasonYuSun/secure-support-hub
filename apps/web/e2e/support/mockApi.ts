@@ -461,13 +461,21 @@ export async function setupMockApi(page: Page, options?: SetupOptions): Promise<
 
         // AI Assist — Suggest Tags
         if (seg[0] === 'requests' && seg[2] === 'ai' && seg[3] === 'suggest-tags' && seg.length === 4 && method === 'POST') {
+            // Suggest the first seeded tag (if any) as existing, plus an unknown "ai-assistant" tag
+            const activeTags = Array.from(tags.values()).filter((t) => !t.deletedAt)
+            const suggestions: Array<{ existingTagId: number | null; name: string; isNew: boolean; reason: string }> = []
+            if (activeTags.length > 0) {
+                const first = activeTags[0]
+                suggestions.push({ existingTagId: first.id, name: first.name, isNew: false, reason: 'Mock: matches dictionary tag' })
+            }
+            // Always include one unknown tag to test isNew=true path
+            suggestions.push({ existingTagId: null, name: 'ai-assistant', isNew: true, reason: 'Mock: AI suggested new tag' })
             return json(route, {
-                tags: [
-                    { name: 'billing', reason: 'Mock reason', isNew: false }
-                ],
+                tags: suggestions,
                 provider: 'stub',
                 model: 'mock',
-                latencyMs: 100
+                latencyMs: 100,
+                runId: 'mock-run-id',
             })
         }
 

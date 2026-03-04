@@ -1,5 +1,6 @@
 package com.suncorp.securehub.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,6 +28,7 @@ public class AiSuggestTagsResponseDto {
     public static class TagSuggestion {
         private Long existingTagId; // if it matches an existing tag
         private String name;
+        @JsonProperty("isNew")
         private boolean isNew;
         private String reason;
     }

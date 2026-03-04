@@ -308,10 +308,40 @@ components:
     AiSuggestTagsResponseDto:
       type: object
       properties:
-        suggestedTags:
+        tags:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/TagSuggestion'
+        runId:
+          type: string
+        provider:
+          type: string
+        model:
+          type: string
+        latencyMs:
+          type: integer
+          format: int64
+        generatedAt:
+          type: string
+          format: date-time
+
+    TagSuggestion:
+      type: object
+      properties:
+        existingTagId:
+          type: integer
+          format: int64
+          nullable: true
+          description: ID of the matching tag in the dictionary, or null if this is a new tag
+        name:
+          type: string
+          description: Normalized tag name
+        isNew:
+          type: boolean
+          description: true if this tag does not exist in the dictionary; false if existingTagId is set
+        reason:
+          type: string
+          description: AI-generated rationale for this suggestion
 
     AiDraftResponseDto:
       type: object
