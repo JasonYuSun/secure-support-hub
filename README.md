@@ -69,17 +69,17 @@ A production-style web app that lets teams create, triage, and track support req
 - strong observability (logs/metrics/traces)
 - CI/CD + automated tests
 - AWS deployment on ECS Fargate (dev first, `ap-southeast-2`)
-- “AI-assisted” features that are safe & practical (summaries, suggested tags, draft responses)
+- “AI-assisted” features that are safe & practical (summaries, suggested tags, draft responses) with provider switching (`stub` local / `bedrock` dev)
 
 ### Core user scenario
 
 1. A user logs in (JWT).
 2. Creates a support request with title/description + attachments.
-3. “AI Assist” button:
-	• summarizes the issue
-	• suggests tags (e.g., billing, login, network)
-	• proposes a first response draft
-4. A triage engineer views the queue
+3. Uses **AI Assist** on request detail:
+   - summarizes the issue thread
+   - suggests tags mapped against dictionary tags
+   - drafts a response into the comment box (never auto-sent)
+4. A triage engineer manages queue assignment/status and applies tags.
 
 ### Product features
 
@@ -93,10 +93,15 @@ A production-style web app that lets teams create, triage, and track support req
   - Create, view, search, filter, paginate
   - Status workflow: `OPEN → IN_PROGRESS → RESOLVED → CLOSED`
   - Comments and assignment
-- **AI Assist**
-  - Summarize issue description and comments
-  - Suggest tags (e.g., billing, login, network)
-  - Draft a response (never auto-sent, always reviewable)
+- **AI Assist (Implemented)**
+  - Three independent actions: `summarize`, `suggest-tags`, `draft-response`
+  - Context includes request title/description, chronological comments, and attachment context
+    (`text/plain`, `text/csv`, plus Bedrock multimodal payload for PDF/images)
+  - Tag suggestions are reconciled with the tag dictionary (existing tags vs new candidates)
+  - New dictionary tag creation is restricted to `TRIAGE` / `ADMIN`
+  - Draft response is user-editable and only pre-fills the comment input (`Use Draft`), never auto-posts
+  - Each AI action is persisted to `ai_assist_runs` with trace metadata
+    (`runId`, provider, model, latency, status, input/output snapshots)
 
 ### Engineering & operations features
 
@@ -213,6 +218,22 @@ Notes:
 - The compose stack auto-runs `infra/docker-compose/localstack/init/01-create-attachments-bucket.sh` to create the local attachment bucket.
 - For API-only local runs (`./gradlew bootRun`), set the same env vars in your shell or `apps/api/.env`.
 
+### AI provider mode (local vs dev)
+
+- Local default: `AI_PROVIDER=stub` (deterministic for tests and local demos)
+- Dev runtime: `AI_PROVIDER=bedrock`
+- Model selection: `AI_BEDROCK_MODEL_ID` (current default: `anthropic.claude-sonnet-4-6`)
+
+Example (API local run with Bedrock):
+
+```bash
+cd apps/api
+AI_PROVIDER=bedrock \
+AI_BEDROCK_MODEL_ID=anthropic.claude-sonnet-4-6 \
+AWS_REGION=ap-southeast-2 \
+./gradlew bootRun
+```
+
 ### Verification (one command)
 
 Run all non-GUI local checks end-to-end:
@@ -277,6 +298,15 @@ The API follows consistent patterns:
 | `GET`   | `/api/v1/requests/{id}`          | Request details                   |
 | `POST`  | `/api/v1/requests/{id}/comments` | Add comment                       |
 | `PATCH` | `/api/v1/requests/{id}`          | Status/assignee updates (RBAC)    |
+| `GET`   | `/api/v1/tags`                   | List active dictionary tags       |
+| `POST`  | `/api/v1/tags`                   | Create dictionary tag (TRIAGE/ADMIN) |
+| `DELETE`| `/api/v1/tags/{tagId}`           | Soft-delete dictionary tag (TRIAGE/ADMIN) |
+| `GET`   | `/api/v1/requests/{id}/tags`     | List applied tags for request     |
+| `POST`  | `/api/v1/requests/{id}/tags/{tagId}` | Apply tag to request          |
+| `DELETE`| `/api/v1/requests/{id}/tags/{tagId}` | Unapply tag from request      |
+| `POST`  | `/api/v1/requests/{id}/ai/summarize` | AI summarize                 |
+| `POST`  | `/api/v1/requests/{id}/ai/suggest-tags` | AI suggest tags            |
+| `POST`  | `/api/v1/requests/{id}/ai/draft-response` | AI draft response        |
 
 The canonical contract is published via OpenAPI:
 
@@ -320,6 +350,7 @@ This project aims for practical, production-like coverage.
 - Unit tests: service/business rules, mappers, validators
 - Integration tests (Testcontainers): DB migrations, repositories, controllers
 - Contract tests: validate API expectations across versions
+- AI integration tests include suggest-tags dictionary reconciliation and multi-tag apply idempotency
 
 ```bash
 cd apps/api
@@ -330,6 +361,7 @@ cd apps/api
 
 - Component tests
 - E2E tests with Playwright
+- AI E2E flows include summarize, suggest-tags (existing + new), draft response, and role-gating checks
 
 ```bash
 cd apps/web
