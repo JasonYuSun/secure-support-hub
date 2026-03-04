@@ -304,6 +304,18 @@ components:
       properties:
         summary:
           type: string
+        runId:
+          type: string
+        provider:
+          type: string
+        model:
+          type: string
+        latencyMs:
+          type: integer
+          format: int64
+        generatedAt:
+          type: string
+          format: date-time
 
     AiSuggestTagsResponseDto:
       type: object
@@ -348,6 +360,18 @@ components:
       properties:
         draft:
           type: string
+        runId:
+          type: string
+        provider:
+          type: string
+        model:
+          type: string
+        latencyMs:
+          type: integer
+          format: int64
+        generatedAt:
+          type: string
+          format: date-time
 
 
 paths:
