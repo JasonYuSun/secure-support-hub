@@ -9,6 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JwtTokenProviderTest {
 
@@ -44,5 +45,19 @@ class JwtTokenProviderTest {
     @Test
     void validateToken_withTamperedToken_shouldReturnFalse() {
         assertThat(tokenProvider.validateToken("invalid.token.here")).isFalse();
+    }
+
+    @Test
+    void constructor_withBlankSecret_shouldThrow() {
+        assertThatThrownBy(() -> new JwtTokenProvider("   ", 86400000L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JWT_SECRET must be configured and non-empty");
+    }
+
+    @Test
+    void constructor_withTooShortSecret_shouldThrow() {
+        assertThatThrownBy(() -> new JwtTokenProvider("short-secret", 86400000L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JWT_SECRET must be at least 32 characters");
     }
 }
