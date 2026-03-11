@@ -40,12 +40,12 @@ locals {
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "api" {
   name              = "/ecs/securehub-${var.environment}-api"
-  retention_in_days = var.log_retention_days
+  retention_in_days = 14
 }
 
 resource "aws_cloudwatch_log_group" "web" {
   name              = "/ecs/securehub-${var.environment}-web"
-  retention_in_days = var.log_retention_days
+  retention_in_days = 14
 }
 
 # IAM Roles

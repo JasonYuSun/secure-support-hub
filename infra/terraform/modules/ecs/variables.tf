@@ -95,9 +95,3 @@ variable "ai_bedrock_model_id" {
   type        = string
   description = "Bedrock model ID (or model/inference profile ARN) used by API runtime"
 }
-
-variable "log_retention_days" {
-  type        = number
-  description = "CloudWatch log retention period in days"
-  default     = 90
-}
