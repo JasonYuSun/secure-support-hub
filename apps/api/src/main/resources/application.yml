@@ -57,6 +57,7 @@ app:
 
   ai:
     provider: ${AI_PROVIDER:stub}
+    prompt-version: ${AI_PROMPT_VERSION:v1}
     bedrock:
       model-id: ${AI_BEDROCK_MODEL_ID:anthropic.claude-sonnet-4-6}
       aws-region: ${AWS_REGION:ap-southeast-2}

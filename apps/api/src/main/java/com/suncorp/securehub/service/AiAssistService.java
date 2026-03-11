@@ -12,6 +12,7 @@ import com.suncorp.securehub.service.ai.AiContextBuilder;
 import com.suncorp.securehub.service.ai.AiInputSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,8 @@ public class AiAssistService {
     private final TagRepository tagRepository;
     private final ObjectMapper objectMapper;
     private final AiInputSanitizer aiInputSanitizer;
+    @Value("${app.ai.prompt-version:v1}")
+    private String promptVersion;
 
     private static final int MAX_TAG_NAME_LENGTH = 100;
 
@@ -209,7 +212,7 @@ public class AiAssistService {
             Map<String, Object> inputAudit = new LinkedHashMap<>();
             inputAudit.put("requestId", requestId);
             inputAudit.put("actionType", actionType);
-            inputAudit.put("promptVersion", "v1");
+            inputAudit.put("promptVersion", promptVersion);
             inputAudit.put("hasAttachments",
                     context != null && context.getAttachments() != null && !context.getAttachments().isEmpty());
             inputAudit.put("commentCount",
@@ -232,7 +235,7 @@ public class AiAssistService {
                 .actionType(actionType)
                 .provider(provider.getProviderName())
                 .modelId(provider.getModelId())
-                .promptVersion("v1")
+                .promptVersion(promptVersion)
                 .inputSnapshot(inputJson)
                 .outputPayload(outputJson)
                 .status(status)
