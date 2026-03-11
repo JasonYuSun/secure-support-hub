@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,6 +30,14 @@ public class AiContextBuilder {
     private final SupportRequestRepository requestRepository;
     private final AttachmentRepository attachmentRepository;
     private final AttachmentService attachmentService;
+    private static final int CONTENT_MAX_CHARS_PER_ATTACHMENT = 10_000;
+    private static final String FILTERED_INJECTION_TOKEN = "[FILTERED_INJECTION_PHRASE]";
+    private static final String TRUNCATED_TOKEN = "[TRUNCATED_FOR_AI_CONTEXT]";
+    private static final List<Pattern> ATTACHMENT_INJECTION_PATTERNS = List.of(
+            Pattern.compile("(?i)\\b(ignore|disregard|forget)\\b\\s+(all\\s+)?\\b(prior|previous|above)\\b\\s+\\binstructions?\\b"),
+            Pattern.compile("(?i)\\boverride\\s+(all\\s+)?instructions?\\b"),
+            Pattern.compile("(?i)\\byou\\s+are\\s+now\\b"),
+            Pattern.compile("(?i)\\b(system|developer)\\s+(prompt|instructions?)\\b"));
 
     @Transactional(readOnly = true)
     public AiContextDto buildContext(Long requestId, String userPrompt) {
@@ -82,7 +91,7 @@ public class AiContextBuilder {
             byte[] bytes = attachmentService.downloadAttachmentBytes(attachment.getId());
             if (attachment.getContentType().startsWith("text/")
                     || attachment.getContentType().equals("application/csv")) {
-                context.setTextContent(new String(bytes, StandardCharsets.UTF_8));
+                context.setTextContent(sanitizeTextAttachmentForAi(new String(bytes, StandardCharsets.UTF_8)));
                 context.setIncluded(true);
             } else if (attachment.getContentType().equals("application/pdf")
                     || attachment.getContentType().startsWith("image/")) {
@@ -97,5 +106,31 @@ public class AiContextBuilder {
         }
 
         return context;
+    }
+
+    /**
+     * Harden user-controlled text attachment content before it is included in AI
+     * context.
+     * Security controls:
+     * 1) strip non-printable control chars (except CR/LF/TAB)
+     * 2) redact common prompt-injection directives
+     * 3) cap size to limit abuse and context exhaustion
+     */
+    static String sanitizeTextAttachmentForAi(String textContent) {
+        if (textContent == null || textContent.isEmpty()) {
+            return textContent;
+        }
+
+        String sanitized = textContent.replaceAll("[\\p{Cntrl}&&[^\\r\\n\\t]]", "");
+
+        for (Pattern pattern : ATTACHMENT_INJECTION_PATTERNS) {
+            sanitized = pattern.matcher(sanitized).replaceAll(FILTERED_INJECTION_TOKEN);
+        }
+
+        if (sanitized.length() > CONTENT_MAX_CHARS_PER_ATTACHMENT) {
+            sanitized = sanitized.substring(0, CONTENT_MAX_CHARS_PER_ATTACHMENT) + "\n" + TRUNCATED_TOKEN;
+        }
+
+        return sanitized;
     }
 }
