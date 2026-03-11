@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -92,6 +93,10 @@ public class AiContextBuilder {
 
         try {
             byte[] bytes = attachmentService.downloadAttachmentBytes(attachment.getId());
+            if (!isDeclaredMimeConsistent(attachment.getContentType(), bytes)) {
+                context.setSkipReason("Declared content type does not match file signature.");
+                return context;
+            }
             if (attachment.getContentType().startsWith("text/")
                     || attachment.getContentType().equals("application/csv")) {
                 context.setTextContent(sanitizeTextAttachmentForAi(new String(bytes, StandardCharsets.UTF_8)));
@@ -118,6 +123,84 @@ public class AiContextBuilder {
         }
 
         return context;
+    }
+
+    static boolean isDeclaredMimeConsistent(String declaredContentType, byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return false;
+        }
+
+        String declared = normalizeMime(declaredContentType);
+        return switch (declared) {
+            case "application/pdf" -> hasPdfSignature(bytes);
+            case "image/png" -> hasPngSignature(bytes);
+            case "image/jpeg" -> hasJpegSignature(bytes);
+            case "image/webp" -> hasWebpSignature(bytes);
+            case "text/plain", "application/csv", "text/csv" -> isLikelyText(bytes);
+            default -> false;
+        };
+    }
+
+    private static String normalizeMime(String contentType) {
+        if (contentType == null) {
+            return "";
+        }
+        return contentType.split(";")[0].trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean hasPdfSignature(byte[] bytes) {
+        return hasPrefix(bytes, new byte[] { '%', 'P', 'D', 'F', '-' });
+    }
+
+    private static boolean hasPngSignature(byte[] bytes) {
+        return hasPrefix(bytes, new byte[] { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A });
+    }
+
+    private static boolean hasJpegSignature(byte[] bytes) {
+        return bytes.length >= 3
+                && (bytes[0] & 0xFF) == 0xFF
+                && (bytes[1] & 0xFF) == 0xD8
+                && (bytes[2] & 0xFF) == 0xFF;
+    }
+
+    private static boolean hasWebpSignature(byte[] bytes) {
+        return bytes.length >= 12
+                && bytes[0] == 'R'
+                && bytes[1] == 'I'
+                && bytes[2] == 'F'
+                && bytes[3] == 'F'
+                && bytes[8] == 'W'
+                && bytes[9] == 'E'
+                && bytes[10] == 'B'
+                && bytes[11] == 'P';
+    }
+
+    private static boolean hasPrefix(byte[] bytes, byte[] prefix) {
+        if (bytes.length < prefix.length) {
+            return false;
+        }
+        for (int i = 0; i < prefix.length; i++) {
+            if (bytes[i] != prefix[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isLikelyText(byte[] bytes) {
+        int sampleSize = Math.min(bytes.length, 2048);
+        int suspiciousControlCount = 0;
+
+        for (int i = 0; i < sampleSize; i++) {
+            int b = bytes[i] & 0xFF;
+            boolean allowed = b == 9 || b == 10 || b == 13 || (b >= 32 && b <= 126);
+            if (!allowed) {
+                suspiciousControlCount++;
+            }
+        }
+
+        double suspiciousRatio = sampleSize == 0 ? 1.0 : (double) suspiciousControlCount / sampleSize;
+        return suspiciousRatio <= 0.1;
     }
 
     /**

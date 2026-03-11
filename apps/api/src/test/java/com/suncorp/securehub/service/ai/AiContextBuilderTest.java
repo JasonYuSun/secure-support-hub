@@ -36,6 +36,20 @@ class AiContextBuilderTest {
     private SupportRequest request;
     private Attachment textAttachment;
 
+    private static byte[] pngBytesOfSize(int size) {
+        byte[] bytes = new byte[size];
+        byte[] sig = new byte[] { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A };
+        System.arraycopy(sig, 0, bytes, 0, Math.min(sig.length, size));
+        return bytes;
+    }
+
+    private static byte[] pdfBytesOfSize(int size) {
+        byte[] bytes = new byte[size];
+        byte[] sig = new byte[] { '%', 'P', 'D', 'F', '-' };
+        System.arraycopy(sig, 0, bytes, 0, Math.min(sig.length, size));
+        return bytes;
+    }
+
     @BeforeEach
     void setUp() {
         request = SupportRequest.builder()
@@ -99,7 +113,7 @@ class AiContextBuilderTest {
                 .s3ObjectKey("req/1/too-large.pdf")
                 .build();
 
-        byte[] oversized = new byte[5 * 1024 * 1024 + 1];
+        byte[] oversized = pdfBytesOfSize(5 * 1024 * 1024 + 1);
 
         when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
         when(attachmentRepository.findByRequest_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of(bigPdf));
@@ -143,9 +157,9 @@ class AiContextBuilderTest {
         when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
         when(attachmentRepository.findByRequest_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of(image1, image2, image3));
         when(attachmentRepository.findByComment_Request_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of());
-        when(attachmentService.downloadAttachmentBytes(21L)).thenReturn(new byte[5 * 1024 * 1024]);
-        when(attachmentService.downloadAttachmentBytes(22L)).thenReturn(new byte[5 * 1024 * 1024]);
-        when(attachmentService.downloadAttachmentBytes(23L)).thenReturn(new byte[1024]);
+        when(attachmentService.downloadAttachmentBytes(21L)).thenReturn(pngBytesOfSize(5 * 1024 * 1024));
+        when(attachmentService.downloadAttachmentBytes(22L)).thenReturn(pngBytesOfSize(5 * 1024 * 1024));
+        when(attachmentService.downloadAttachmentBytes(23L)).thenReturn(pngBytesOfSize(1024));
 
         AiContextDto context = aiContextBuilder.buildContext(1L, null);
 
@@ -154,5 +168,43 @@ class AiContextBuilderTest {
         assertThat(context.getAttachments().get(1).isIncluded()).isTrue();
         assertThat(context.getAttachments().get(2).isIncluded()).isFalse();
         assertThat(context.getAttachments().get(2).getSkipReason()).contains("request-level binary AI context budget");
+    }
+
+    @Test
+    void buildContext_declaredTextButBinarySignature_isSkipped() {
+        byte[] png = pngBytesOfSize(2048);
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
+        when(attachmentRepository.findByRequest_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of(textAttachment));
+        when(attachmentRepository.findByComment_Request_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of());
+        when(attachmentService.downloadAttachmentBytes(11L)).thenReturn(png);
+
+        AiContextDto context = aiContextBuilder.buildContext(1L, null);
+        AiContextDto.AttachmentContext att = context.getAttachments().get(0);
+
+        assertThat(att.isIncluded()).isFalse();
+        assertThat(att.getSkipReason()).contains("does not match file signature");
+    }
+
+    @Test
+    void buildContext_declaredImageButTextPayload_isSkipped() {
+        Attachment imageAttachment = Attachment.builder()
+                .id(31L)
+                .request(request)
+                .fileName("image.png")
+                .contentType("image/png")
+                .fileSize(128L)
+                .s3ObjectKey("req/1/image.png")
+                .build();
+
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
+        when(attachmentRepository.findByRequest_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of(imageAttachment));
+        when(attachmentRepository.findByComment_Request_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of());
+        when(attachmentService.downloadAttachmentBytes(31L)).thenReturn("plain text".getBytes(StandardCharsets.UTF_8));
+
+        AiContextDto context = aiContextBuilder.buildContext(1L, null);
+        AiContextDto.AttachmentContext att = context.getAttachments().get(0);
+
+        assertThat(att.isIncluded()).isFalse();
+        assertThat(att.getSkipReason()).contains("does not match file signature");
     }
 }
