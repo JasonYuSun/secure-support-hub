@@ -31,6 +31,8 @@ public class AiContextBuilder {
     private final AttachmentRepository attachmentRepository;
     private final AttachmentService attachmentService;
     private static final int CONTENT_MAX_CHARS_PER_ATTACHMENT = 10_000;
+    private static final int MAX_BINARY_BYTES_PER_ATTACHMENT = 5 * 1024 * 1024;
+    private static final int MAX_TOTAL_BINARY_BYTES_PER_REQUEST = 10 * 1024 * 1024;
     private static final String FILTERED_INJECTION_TOKEN = "[FILTERED_INJECTION_PHRASE]";
     private static final String TRUNCATED_TOKEN = "[TRUNCATED_FOR_AI_CONTEXT]";
     private static final List<Pattern> ATTACHMENT_INJECTION_PATTERNS = List.of(
@@ -57,18 +59,19 @@ public class AiContextBuilder {
         }
 
         List<AttachmentContext> attachmentContexts = new ArrayList<>();
+        long[] totalBinaryBytes = { 0L };
 
         // Add request attachments
         List<Attachment> reqAttachments = attachmentRepository.findByRequest_IdOrderByCreatedAtAsc(requestId);
         for (Attachment att : reqAttachments) {
-            attachmentContexts.add(buildAttachmentContext(att));
+            attachmentContexts.add(buildAttachmentContext(att, totalBinaryBytes));
         }
 
         // Add comment attachments
         List<Attachment> commentAttachments = attachmentRepository
                 .findByComment_Request_IdOrderByCreatedAtAsc(requestId);
         for (Attachment att : commentAttachments) {
-            attachmentContexts.add(buildAttachmentContext(att));
+            attachmentContexts.add(buildAttachmentContext(att, totalBinaryBytes));
         }
 
         return AiContextDto.builder()
@@ -80,7 +83,7 @@ public class AiContextBuilder {
                 .build();
     }
 
-    private AttachmentContext buildAttachmentContext(Attachment attachment) {
+    private AttachmentContext buildAttachmentContext(Attachment attachment, long[] totalBinaryBytes) {
         AttachmentContext context = AttachmentContext.builder()
                 .fileName(attachment.getFileName())
                 .contentType(attachment.getContentType())
@@ -95,8 +98,17 @@ public class AiContextBuilder {
                 context.setIncluded(true);
             } else if (attachment.getContentType().equals("application/pdf")
                     || attachment.getContentType().startsWith("image/")) {
+                if (bytes.length > MAX_BINARY_BYTES_PER_ATTACHMENT) {
+                    context.setSkipReason("Attachment exceeds per-file binary AI context limit.");
+                    return context;
+                }
+                if ((totalBinaryBytes[0] + bytes.length) > MAX_TOTAL_BINARY_BYTES_PER_REQUEST) {
+                    context.setSkipReason("Attachment skipped: request-level binary AI context budget exceeded.");
+                    return context;
+                }
                 context.setContentBytes(bytes);
                 context.setIncluded(true);
+                totalBinaryBytes[0] += bytes.length;
             } else {
                 context.setSkipReason("Unsupported content type for AI context.");
             }

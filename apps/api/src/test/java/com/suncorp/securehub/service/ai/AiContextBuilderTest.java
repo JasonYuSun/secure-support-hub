@@ -87,4 +87,72 @@ class AiContextBuilderTest {
         assertThat(att.getTextContent()).contains("[TRUNCATED_FOR_AI_CONTEXT]");
         assertThat(att.getTextContent().length()).isLessThanOrEqualTo(10_050);
     }
+
+    @Test
+    void buildContext_binaryAttachment_overPerFileLimit_isSkipped() {
+        Attachment bigPdf = Attachment.builder()
+                .id(12L)
+                .request(request)
+                .fileName("too-large.pdf")
+                .contentType("application/pdf")
+                .fileSize((long) (5 * 1024 * 1024 + 1))
+                .s3ObjectKey("req/1/too-large.pdf")
+                .build();
+
+        byte[] oversized = new byte[5 * 1024 * 1024 + 1];
+
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
+        when(attachmentRepository.findByRequest_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of(bigPdf));
+        when(attachmentRepository.findByComment_Request_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of());
+        when(attachmentService.downloadAttachmentBytes(12L)).thenReturn(oversized);
+
+        AiContextDto context = aiContextBuilder.buildContext(1L, null);
+        AiContextDto.AttachmentContext att = context.getAttachments().get(0);
+
+        assertThat(att.isIncluded()).isFalse();
+        assertThat(att.getSkipReason()).contains("per-file binary AI context limit");
+    }
+
+    @Test
+    void buildContext_binaryAttachments_exceedTotalBudget_laterOnesAreSkipped() {
+        Attachment image1 = Attachment.builder()
+                .id(21L)
+                .request(request)
+                .fileName("img1.png")
+                .contentType("image/png")
+                .fileSize(5L * 1024 * 1024)
+                .s3ObjectKey("req/1/img1.png")
+                .build();
+        Attachment image2 = Attachment.builder()
+                .id(22L)
+                .request(request)
+                .fileName("img2.png")
+                .contentType("image/png")
+                .fileSize(5L * 1024 * 1024)
+                .s3ObjectKey("req/1/img2.png")
+                .build();
+        Attachment image3 = Attachment.builder()
+                .id(23L)
+                .request(request)
+                .fileName("img3.png")
+                .contentType("image/png")
+                .fileSize(1024L)
+                .s3ObjectKey("req/1/img3.png")
+                .build();
+
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
+        when(attachmentRepository.findByRequest_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of(image1, image2, image3));
+        when(attachmentRepository.findByComment_Request_IdOrderByCreatedAtAsc(1L)).thenReturn(List.of());
+        when(attachmentService.downloadAttachmentBytes(21L)).thenReturn(new byte[5 * 1024 * 1024]);
+        when(attachmentService.downloadAttachmentBytes(22L)).thenReturn(new byte[5 * 1024 * 1024]);
+        when(attachmentService.downloadAttachmentBytes(23L)).thenReturn(new byte[1024]);
+
+        AiContextDto context = aiContextBuilder.buildContext(1L, null);
+
+        assertThat(context.getAttachments()).hasSize(3);
+        assertThat(context.getAttachments().get(0).isIncluded()).isTrue();
+        assertThat(context.getAttachments().get(1).isIncluded()).isTrue();
+        assertThat(context.getAttachments().get(2).isIncluded()).isFalse();
+        assertThat(context.getAttachments().get(2).getSkipReason()).contains("request-level binary AI context budget");
+    }
 }
