@@ -43,6 +43,8 @@ public class SecurityConfig {
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
+    @Value("${app.docs.public:true}")
+    private boolean docsPublic;
 
     @Bean
     public RateLimitFilter rateLimitFilter() {
@@ -60,7 +62,12 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
                     .requestMatchers("/actuator/**").hasRole("ADMIN")
-                    .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**").permitAll()
+                    .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**")
+                    .access((authentication, context) -> docsPublic
+                            ? new org.springframework.security.authorization.AuthorizationDecision(true)
+                            : new org.springframework.security.authorization.AuthorizationDecision(
+                                    authentication.get().getAuthorities().stream()
+                                            .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()))))
                     .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
