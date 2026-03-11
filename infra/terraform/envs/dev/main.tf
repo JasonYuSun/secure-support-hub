@@ -63,7 +63,7 @@ module "ecs" {
   environment              = var.environment
   aws_region               = var.aws_region
   vpc_id                   = module.network.vpc_id
-  private_subnet_ids       = module.network.private_subnet_ids
+  public_subnet_ids        = module.network.public_subnet_ids
   ecs_security_group_id    = module.network.ecs_security_group_id
   alb_target_group_api_arn = module.alb.target_group_api_arn
   alb_target_group_web_arn = module.alb.target_group_web_arn
