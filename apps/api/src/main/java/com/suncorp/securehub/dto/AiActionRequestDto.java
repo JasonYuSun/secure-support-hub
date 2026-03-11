@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AiActionRequestDto {
-    @Size(max = 2000)
-    private String promptOverride; // optional extra instructions for the AI
+    @Size(max = 500, message = "promptOverride must not exceed 500 characters")
+    private String promptOverride; // optional user context hint — sanitized before use
 }

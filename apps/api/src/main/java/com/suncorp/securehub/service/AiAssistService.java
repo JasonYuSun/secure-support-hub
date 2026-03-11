@@ -9,11 +9,15 @@ import com.suncorp.securehub.repository.AiAssistRunRepository;
 import com.suncorp.securehub.repository.TagRepository;
 import com.suncorp.securehub.service.ai.AiAssistProvider;
 import com.suncorp.securehub.service.ai.AiContextBuilder;
+import com.suncorp.securehub.service.ai.AiInputSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.*;
 
@@ -28,6 +32,7 @@ public class AiAssistService {
     private final AiAssistRunRepository aiAssistRunRepository;
     private final TagRepository tagRepository;
     private final ObjectMapper objectMapper;
+    private final AiInputSanitizer aiInputSanitizer;
 
     private static final int MAX_TAG_NAME_LENGTH = 100;
 
@@ -36,18 +41,21 @@ public class AiAssistService {
             Set<String> roles) {
         // Enforce RBAC by fetching the request first
         supportRequestService.getRequest(requestId, username, roles);
-        AiContextDto context = contextBuilder.buildContext(requestId,
-                reqDto != null ? reqDto.getPromptOverride() : null);
+
+        String rawHint = reqDto != null ? reqDto.getPromptOverride() : null;
+        String sanitizedHint = aiInputSanitizer.sanitize(rawHint);
+
+        AiContextDto context = contextBuilder.buildContext(requestId, sanitizedHint);
 
         AiSummarizeResponseDto response;
         try {
             response = provider.summarize(context);
             saveRun(requestId, "SUMMARIZE", context, response, "SUCCESS", null, null, response.getLatencyMs(), username,
-                    response.getRunId());
+                    response.getRunId(), rawHint);
         } catch (Exception e) {
             log.error("AI summarize failed", e);
             saveRun(requestId, "SUMMARIZE", context, null, "FAILED", "AI_PROVIDER_ERROR", e.getMessage(), 0L, username,
-                    UUID.randomUUID().toString());
+                    UUID.randomUUID().toString(), rawHint);
             throw new RuntimeException("AI summarize failed: " + e.getMessage(), e);
         }
         return response;
@@ -57,8 +65,11 @@ public class AiAssistService {
     public AiSuggestTagsResponseDto suggestTags(Long requestId, AiActionRequestDto reqDto, String username,
             Set<String> roles) {
         supportRequestService.getRequest(requestId, username, roles);
-        AiContextDto context = contextBuilder.buildContext(requestId,
-                reqDto != null ? reqDto.getPromptOverride() : null);
+
+        String rawHint = reqDto != null ? reqDto.getPromptOverride() : null;
+        String sanitizedHint = aiInputSanitizer.sanitize(rawHint);
+
+        AiContextDto context = contextBuilder.buildContext(requestId, sanitizedHint);
 
         AiSuggestTagsResponseDto response;
         try {
@@ -66,11 +77,11 @@ public class AiAssistService {
             // Post-process: reconcile provider output against the tag dictionary
             response = reconcileWithDictionary(response);
             saveRun(requestId, "SUGGEST_TAGS", context, response, "SUCCESS", null, null, response.getLatencyMs(),
-                    username, response.getRunId());
+                    username, response.getRunId(), rawHint);
         } catch (Exception e) {
             log.error("AI suggest tags failed", e);
             saveRun(requestId, "SUGGEST_TAGS", context, null, "FAILED", "AI_PROVIDER_ERROR", e.getMessage(), 0L,
-                    username, UUID.randomUUID().toString());
+                    username, UUID.randomUUID().toString(), rawHint);
             throw new RuntimeException("AI suggest tags failed: " + e.getMessage(), e);
         }
         return response;
@@ -141,26 +152,47 @@ public class AiAssistService {
     public AiDraftResponseDto draftResponse(Long requestId, AiActionRequestDto reqDto, String username,
             Set<String> roles) {
         supportRequestService.getRequest(requestId, username, roles);
-        AiContextDto context = contextBuilder.buildContext(requestId,
-                reqDto != null ? reqDto.getPromptOverride() : null);
+
+        String rawHint = reqDto != null ? reqDto.getPromptOverride() : null;
+        String sanitizedHint = aiInputSanitizer.sanitize(rawHint);
+
+        AiContextDto context = contextBuilder.buildContext(requestId, sanitizedHint);
 
         AiDraftResponseDto response;
         try {
             response = provider.draftResponse(context);
             saveRun(requestId, "DRAFT_RESPONSE", context, response, "SUCCESS", null, null, response.getLatencyMs(),
-                    username, response.getRunId());
+                    username, response.getRunId(), rawHint);
         } catch (Exception e) {
             log.error("AI draft response failed", e);
             saveRun(requestId, "DRAFT_RESPONSE", context, null, "FAILED", "AI_PROVIDER_ERROR", e.getMessage(), 0L,
-                    username, UUID.randomUUID().toString());
+                    username, UUID.randomUUID().toString(), rawHint);
             throw new RuntimeException("AI draft response failed: " + e.getMessage(), e);
         }
         return response;
     }
 
+    /**
+     * Store a minimal audit record for an AI action run.
+     *
+     * <p>
+     * <strong>Security note:</strong> This method deliberately does NOT persist raw
+     * request text, comments, or attachment content. Doing so would create a
+     * secondary
+     * PII data-exposure risk (AI-002). Instead it stores:
+     * <ul>
+     * <li>Non-PII metadata (requestId, action, counts)</li>
+     * <li>The sanitizedHintLength (length of the already-sanitized hint)</li>
+     * <li>A SHA-256 hex digest of the raw hint for forensic traceability without
+     * persisting its content</li>
+     * </ul>
+     *
+     * @param rawHint the original (pre-sanitization) user hint — only its hash is
+     *                persisted
+     */
     private void saveRun(Long requestId, String actionType, AiContextDto context, Object response,
             String status, String errorCode, String errorMessage, Long latencyMs,
-            String username, String runIdStr) {
+            String username, String runIdStr, String rawHint) {
         UUID runId;
         try {
             runId = UUID.fromString(runIdStr);
@@ -171,16 +203,28 @@ public class AiAssistService {
         String inputJson = null;
         String outputJson = null;
         try {
-            // Strip raw bytes from payload before saving
-            if (context != null && context.getAttachments() != null) {
-                context.getAttachments().forEach(att -> att.setContentBytes(null));
-            }
-            if (context != null)
-                inputJson = objectMapper.writeValueAsString(context);
-            if (response != null)
+            // Build minimal metadata-only snapshot — no raw user content (AI-001/AI-002
+            // fix)
+            Map<String, Object> inputAudit = new LinkedHashMap<>();
+            inputAudit.put("requestId", requestId);
+            inputAudit.put("actionType", actionType);
+            inputAudit.put("promptVersion", "v1");
+            inputAudit.put("hasAttachments",
+                    context != null && context.getAttachments() != null && !context.getAttachments().isEmpty());
+            inputAudit.put("commentCount",
+                    context != null && context.getComments() != null ? context.getComments().size() : 0);
+            inputAudit.put("sanitizedHintLength",
+                    context != null && context.getUserPrompt() != null ? context.getUserPrompt().length() : 0);
+            // SHA-256 of the raw (pre-sanitization) hint for forensic traceability
+            inputAudit.put("rawHintSha256", sha256Hex(rawHint));
+
+            inputJson = objectMapper.writeValueAsString(inputAudit);
+
+            if (response != null) {
                 outputJson = objectMapper.writeValueAsString(response);
+            }
         } catch (JsonProcessingException e) {
-            log.warn("Failed to serialize AI payload", e);
+            log.warn("Failed to serialize AI audit payload", e);
         }
 
         AiAssistRun run = AiAssistRun.builder()
@@ -201,5 +245,29 @@ public class AiAssistService {
                 .build();
 
         aiAssistRunRepository.save(run);
+    }
+
+    /**
+     * Returns the lowercase hex-encoded SHA-256 digest of a string, or null if
+     * input is null.
+     * Used for forensic traceability of raw user hints without persisting their
+     * content.
+     */
+    private static String sha256Hex(String input) {
+        if (input == null) {
+            return null;
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(hashBytes.length * 2);
+            for (byte b : hashBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            log.warn("SHA-256 not available — raw_hint_sha256 will be null", e);
+            return null;
+        }
     }
 }
