@@ -46,6 +46,10 @@ dependencies {
     // OpenAPI / Swagger UI
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
 
+    // Rate limiting (AI-004)
+    implementation("com.bucket4j:bucket4j-core:8.10.1")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+
     // Metrics
     implementation("io.micrometer:micrometer-registry-prometheus")
 

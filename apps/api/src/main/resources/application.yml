@@ -58,6 +58,11 @@ app:
     bedrock:
       model-id: ${AI_BEDROCK_MODEL_ID:anthropic.claude-sonnet-4-6}
       aws-region: ${AWS_REGION:ap-southeast-2}
+    rate-limit:
+      # AI-004: Per-user rate limit for /api/v1/requests/*/ai/** endpoints.
+      # Default: 30 AI calls per hour per authenticated user.
+      # Override via env var AI_RATE_LIMIT_REQUESTS_PER_HOUR.
+      requests-per-hour: ${AI_RATE_LIMIT_REQUESTS_PER_HOUR:30}
 
 management:
   endpoints:
