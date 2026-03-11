@@ -104,6 +104,15 @@ class SupportRequestControllerIT {
     }
 
     @Test
+    void listRequests_withInvalidSortField_shouldReturn400() throws Exception {
+        mockMvc.perform(get("/api/v1/requests")
+                        .header("Authorization", "Bearer " + userToken)
+                        .param("sort", "notARealField"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+    }
+
+    @Test
     void deleteRequest_asOwner_shouldReturn204() throws Exception {
         Long requestId = createRequest(userToken, "Delete by owner", "Owner delete test");
 

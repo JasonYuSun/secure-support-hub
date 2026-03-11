@@ -2,6 +2,7 @@ package com.suncorp.securehub.controller;
 
 import com.suncorp.securehub.dto.*;
 import com.suncorp.securehub.entity.SupportRequest.RequestStatus;
+import com.suncorp.securehub.exception.BadRequestException;
 import com.suncorp.securehub.service.SupportRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -28,6 +29,12 @@ import java.util.stream.Collectors;
 public class SupportRequestController {
 
     private final SupportRequestService requestService;
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "id",
+            "title",
+            "status",
+            "createdAt",
+            "updatedAt");
 
     @GetMapping
     @Operation(summary = "List support requests with optional filters")
@@ -41,6 +48,9 @@ public class SupportRequestController {
             @AuthenticationPrincipal UserDetails principal) {
 
         Sort.Direction dir = "asc".equalsIgnoreCase(direction) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        if (!ALLOWED_SORT_FIELDS.contains(sort)) {
+            throw new BadRequestException("Invalid sort field: " + sort);
+        }
         PageRequest pageable = PageRequest.of(page, size, Sort.by(dir, sort));
         Set<String> roles = principal.getAuthorities().stream()
                 .map(a -> a.getAuthority()).collect(Collectors.toSet());
