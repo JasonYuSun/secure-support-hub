@@ -185,6 +185,7 @@ public class AiAssistService {
      * <li>The sanitizedHintLength (length of the already-sanitized hint)</li>
      * <li>A SHA-256 hex digest of the raw hint for forensic traceability without
      * persisting its content</li>
+     * <li>Output metadata only (lengths/counts), never raw model text</li>
      * </ul>
      *
      * @param rawHint the original (pre-sanitization) user hint — only its hash is
@@ -220,9 +221,7 @@ public class AiAssistService {
 
             inputJson = objectMapper.writeValueAsString(inputAudit);
 
-            if (response != null) {
-                outputJson = objectMapper.writeValueAsString(response);
-            }
+            outputJson = objectMapper.writeValueAsString(buildOutputAudit(actionType, response, runId.toString()));
         } catch (JsonProcessingException e) {
             log.warn("Failed to serialize AI audit payload", e);
         }
@@ -245,6 +244,60 @@ public class AiAssistService {
                 .build();
 
         aiAssistRunRepository.save(run);
+    }
+
+    /**
+     * Build a metadata-only output audit snapshot.
+     *
+     * <p>
+     * This intentionally excludes raw model output text (summary/draft) to avoid
+     * storing potential PII or sensitive content in audit rows (AI-002 fix).
+     */
+    private Map<String, Object> buildOutputAudit(String actionType, Object response, String runId) {
+        Map<String, Object> outputAudit = new LinkedHashMap<>();
+        outputAudit.put("actionType", actionType);
+        outputAudit.put("runId", runId);
+        outputAudit.put("hasOutput", response != null);
+
+        if (response == null) {
+            return outputAudit;
+        }
+
+        if (response instanceof AiSummarizeResponseDto summarize) {
+            outputAudit.put("summaryLength", summarize.getSummary() != null ? summarize.getSummary().length() : 0);
+            outputAudit.put("provider", summarize.getProvider());
+            outputAudit.put("model", summarize.getModel());
+            outputAudit.put("latencyMs", summarize.getLatencyMs());
+            outputAudit.put("generatedAt", summarize.getGeneratedAt());
+            return outputAudit;
+        }
+
+        if (response instanceof AiDraftResponseDto draft) {
+            outputAudit.put("draftLength", draft.getDraft() != null ? draft.getDraft().length() : 0);
+            outputAudit.put("provider", draft.getProvider());
+            outputAudit.put("model", draft.getModel());
+            outputAudit.put("latencyMs", draft.getLatencyMs());
+            outputAudit.put("generatedAt", draft.getGeneratedAt());
+            return outputAudit;
+        }
+
+        if (response instanceof AiSuggestTagsResponseDto tags) {
+            int tagCount = tags.getTags() != null ? tags.getTags().size() : 0;
+            int newTagCount = tags.getTags() != null
+                    ? (int) tags.getTags().stream().filter(AiSuggestTagsResponseDto.TagSuggestion::isNew).count()
+                    : 0;
+            outputAudit.put("tagCount", tagCount);
+            outputAudit.put("newTagCount", newTagCount);
+            outputAudit.put("provider", tags.getProvider());
+            outputAudit.put("model", tags.getModel());
+            outputAudit.put("latencyMs", tags.getLatencyMs());
+            outputAudit.put("generatedAt", tags.getGeneratedAt());
+            return outputAudit;
+        }
+
+        // Fallback for unexpected response types.
+        outputAudit.put("responseType", response.getClass().getSimpleName());
+        return outputAudit;
     }
 
     /**
