@@ -10,6 +10,7 @@ import com.suncorp.securehub.repository.TagRepository;
 import com.suncorp.securehub.service.ai.AiAssistProvider;
 import com.suncorp.securehub.service.ai.AiContextBuilder;
 import com.suncorp.securehub.service.ai.AiInputSanitizer;
+import com.suncorp.securehub.service.ai.AiOutputSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +35,7 @@ public class AiAssistService {
     private final TagRepository tagRepository;
     private final ObjectMapper objectMapper;
     private final AiInputSanitizer aiInputSanitizer;
+    private final AiOutputSanitizer aiOutputSanitizer;
     @Value("${app.ai.prompt-version:v1}")
     private String promptVersion;
 
@@ -53,6 +55,7 @@ public class AiAssistService {
         AiSummarizeResponseDto response;
         try {
             response = provider.summarize(context);
+            response = sanitizeSummarizeResponse(response);
             saveRun(requestId, "SUMMARIZE", context, response, "SUCCESS", null, null, response.getLatencyMs(), username,
                     response.getRunId(), rawHint);
         } catch (Exception e) {
@@ -79,6 +82,7 @@ public class AiAssistService {
             response = provider.suggestTags(context);
             // Post-process: reconcile provider output against the tag dictionary
             response = reconcileWithDictionary(response);
+            response = sanitizeSuggestTagsResponse(response);
             saveRun(requestId, "SUGGEST_TAGS", context, response, "SUCCESS", null, null, response.getLatencyMs(),
                     username, response.getRunId(), rawHint);
         } catch (Exception e) {
@@ -164,6 +168,7 @@ public class AiAssistService {
         AiDraftResponseDto response;
         try {
             response = provider.draftResponse(context);
+            response = sanitizeDraftResponse(response);
             saveRun(requestId, "DRAFT_RESPONSE", context, response, "SUCCESS", null, null, response.getLatencyMs(),
                     username, response.getRunId(), rawHint);
         } catch (Exception e) {
@@ -301,6 +306,41 @@ public class AiAssistService {
         // Fallback for unexpected response types.
         outputAudit.put("responseType", response.getClass().getSimpleName());
         return outputAudit;
+    }
+
+    private AiSummarizeResponseDto sanitizeSummarizeResponse(AiSummarizeResponseDto response) {
+        if (response == null) {
+            return null;
+        }
+        response.setSummary(aiOutputSanitizer.sanitizeText(response.getSummary()));
+        return response;
+    }
+
+    private AiDraftResponseDto sanitizeDraftResponse(AiDraftResponseDto response) {
+        if (response == null) {
+            return null;
+        }
+        response.setDraft(aiOutputSanitizer.sanitizeText(response.getDraft()));
+        return response;
+    }
+
+    private AiSuggestTagsResponseDto sanitizeSuggestTagsResponse(AiSuggestTagsResponseDto response) {
+        if (response == null || response.getTags() == null) {
+            return response;
+        }
+
+        List<AiSuggestTagsResponseDto.TagSuggestion> sanitizedTags = response.getTags().stream()
+                .map(tag -> AiSuggestTagsResponseDto.TagSuggestion.builder()
+                        .existingTagId(tag.getExistingTagId())
+                        .name(aiOutputSanitizer.sanitizeTagName(tag.getName()))
+                        .reason(aiOutputSanitizer.sanitizeText(tag.getReason()))
+                        .isNew(tag.isNew())
+                        .build())
+                .filter(tag -> tag.getName() != null && !tag.getName().isBlank())
+                .toList();
+
+        response.setTags(sanitizedTags);
+        return response;
     }
 
     /**
