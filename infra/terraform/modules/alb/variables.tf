@@ -17,9 +17,3 @@ variable "alb_security_group_id" {
   type        = string
   description = "Security Group ID for ALB"
 }
-
-variable "enable_waf" {
-  type        = bool
-  description = "Whether to attach an AWS WAF web ACL to the ALB"
-  default     = true
-}
