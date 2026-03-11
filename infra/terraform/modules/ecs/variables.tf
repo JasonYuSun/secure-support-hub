@@ -13,9 +13,9 @@ variable "vpc_id" {
   description = "VPC ID where ECS will be deployed"
 }
 
-variable "public_subnet_ids" {
+variable "private_subnet_ids" {
   type        = list(string)
-  description = "List of public subnet IDs for ECS tasks (assumes cost-optimized dev profile)"
+  description = "List of private subnet IDs for ECS tasks"
 }
 
 variable "ecs_security_group_id" {
