@@ -26,7 +26,7 @@
 - [x] AI outputs must be persisted in database.
 - [x] Draft response behavior: pre-fill comment input only; never auto-send.
 - [x] Language behavior: response language follows user input language (Chinese/English auto-follow).
-- [x] Security/cost hardening (PII redaction, quotas, strict throttling) is tracked as **Future Work**, not MVP gate.
+- [x] Security/cost hardening baseline is implemented (prompt hardening, rate limiting, output sanitization); advanced controls (PII classifier, billing alarms, strict infra isolation) remain **Future Work**.
 - [x] Infrastructure principle: runtime config/permissions must be managed by IaC (Terraform) with no manual console drift.
 
 ---
@@ -34,7 +34,7 @@
 ## Current Snapshot (Codebase Reality)
 
 - [x] Request/comment/attachment flows are implemented and passing E2E in current batch (`docs/ai-e2e/*`).
-- [x] AI Assist core actions (`summarize` / `suggest-tags` / `draft-response`) are still not implemented in backend and frontend.
+- [x] AI Assist core actions (`summarize` / `suggest-tags` / `draft-response`) are implemented in backend and frontend.
 - [x] Tagging foundation is implemented (DB schema, backend APIs, frontend panel, OpenAPI, and E2E coverage).
 - [x] README includes AI Assist in scope, but marks it as future phase.
 - [x] Attachment metadata and S3 private object flow are available for building AI context from files.
@@ -135,7 +135,7 @@ Note:
   - `bedrock:InvokeModelWithResponseStream` (only if streaming path is used)
   - `bedrock:Converse`
   - `bedrock:ConverseStream` (only if converse streaming path is used)
-- [x] Scope Bedrock permissions to approved model resources where feasible; if wildcard is required by API behavior, document and justify explicitly.
+- [ ] Scope Bedrock permissions to approved model resources where feasible; wildcard scope is currently accepted for side-project simplicity and should be tightened before production use.
 - [x] Update `infra/terraform/envs/dev/main.tf` to pass AI variables into module `ecs`.
 - [x] Expose relevant AI runtime outputs (or document variable mapping) so deployment/runbook can be validated quickly.
 - [x] Add explicit drift guard: no AI runtime/IAM changes are applied manually in console; all changes flow through Terraform plan/apply.
@@ -271,10 +271,10 @@ Note:
 
 - [x] Add Bedrock runtime SDK dependency and configuration.
 - [x] Add model selection config (`AI_BEDROCK_MODEL_ID`, optional action-level override) and map model capability flags for attachment handling.
-- [x] Add IAM permissions to ECS task role with least privilege:
+- [x] Add IAM permissions to ECS task role for Bedrock runtime:
   - `bedrock:InvokeModel`
   - `bedrock:InvokeModelWithResponseStream` (only if streaming is enabled)
-  - resource-scoped to approved model ARNs where possible.
+  - resource scoping is deferred as accepted side-project risk (see `AI-005`).
 - [x] Ensure no credentials are hard-coded; use IAM role only in dev runtime.
 
 ### 4.4 Language-follow behavior
@@ -363,8 +363,8 @@ Note:
 ## Phase 8: Future Work (Explicitly Not MVP Gate)
 
 - [ ] PII detection/redaction before provider calls.
-- [ ] Rate limiting / per-user quota / cost controls for AI actions.
-- [ ] Prompt injection hardening and attachment content safety filters.
+- [x] Rate limiting / per-user quota baseline for AI actions (per-user endpoint rate limit).
+- [x] Prompt injection hardening and attachment content safety filters.
 - [ ] Custom OCR/PDF text extraction fallback for non-multimodal providers (only if future provider strategy requires it).
 - [ ] Model quality evaluation harness (golden dataset + regression scoring).
 - [ ] Human feedback loop (`thumbs up/down`) with offline prompt iteration pipeline.
@@ -375,7 +375,8 @@ Note:
 ## Definition of Done (AI Assist MVP)
 
 - [x] Bedrock account/model access is enabled for the target region and verified from running ECS task.
-- [x] Terraform-managed ECS runtime includes AI env configuration and least-privilege Bedrock invoke permissions.
+- [x] Terraform-managed ECS runtime includes AI env configuration and Bedrock invoke permissions.
+- [ ] Bedrock IAM least-privilege model scoping is fully enforced (deferred side-project infra hardening).
 - [x] Bedrock model-access/bootstrap is automated via repo-managed scripts/ad hoc commands (not manual console-only operation).
 - [x] All three AI actions work end-to-end from request detail page.
 - [x] Tagging feature exists and applied tags persist (backend + frontend + API contract).

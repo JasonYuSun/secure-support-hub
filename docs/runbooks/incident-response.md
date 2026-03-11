@@ -2,7 +2,7 @@
 
 **Service**: Secure Support Hub  
 **Owner**: Engineering Team  
-**Last Updated**: 2026-02-26
+**Last Updated**: 2026-03-11
 
 ---
 
@@ -99,7 +99,8 @@
 
 2. **Check Actuator metrics**
    ```bash
-   curl http://localhost:8080/actuator/metrics/http.server.requests
+   curl -H "Authorization: Bearer <admin-jwt>" \
+     http://localhost:8080/actuator/metrics/http.server.requests
    ```
 
 3. **Identify pattern**: Is the error isolated to one endpoint? Check request correlation IDs (`X-Request-ID` header) in logs.

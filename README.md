@@ -97,12 +97,17 @@ A production-style web app that lets teams create, triage, and track support req
   - Three independent actions: `summarize`, `suggest-tags`, `draft-response`
   - Context includes request title/description, chronological comments, and attachment context
     (`text/plain`, `text/csv`, plus Bedrock multimodal payload for PDF/images)
+  - `promptOverride` is sanitized server-side and placed in a bounded data-only section (not instruction override)
+  - Attachment ingestion for AI re-verifies file signatures and enforces context size budgets
+    (text cap + per-file binary cap + request-level binary cap)
+  - Per-user AI endpoint rate limiting is enabled to reduce denial-of-wallet risk
+  - AI outputs pass through service-layer output sanitization before response/audit handling
   - UI role gate: `Suggest Tags` is visible to `TRIAGE` / `ADMIN`; summarize and draft are available on accessible requests
   - Tag suggestions are reconciled with the tag dictionary (existing tags vs new candidates)
   - New dictionary tag creation is restricted to `TRIAGE` / `ADMIN`
   - Draft response is user-editable and only pre-fills the comment input (`Use Draft`), never auto-posts
   - Each AI action is persisted to `ai_assist_runs` with trace metadata
-    (`runId`, provider, model, latency, status, input/output snapshots)
+    (`runId`, provider, model, latency, status, metadata-only input/output snapshots, configurable `promptVersion`)
 
 ### Engineering & operations features
 
@@ -270,7 +275,7 @@ Use `RUN_E2E=0 make verify` if you need a faster run without Playwright tests.
 | API                | <http://localhost:8080>                     |
 | OpenAPI/Swagger UI | <http://localhost:8080/swagger-ui.html>     |
 | Health             | <http://localhost:8080/actuator/health>     |
-| Metrics            | <http://localhost:8080/actuator/prometheus> |
+| Metrics            | <http://localhost:8080/actuator/prometheus> (ADMIN auth required) |
 
 > **Note:** Exact ports/paths may differ based on configuration; see the `.env.example` files.
 
@@ -315,6 +320,7 @@ The canonical contract is published via OpenAPI:
 
 - Swagger UI (local): `/swagger-ui.html`
 - Source: `docs/api/openapi.yaml` (or generated)
+- Production profile defaults `DOCS_PUBLIC=false` (docs are not public by default in prod)
 
 ---
 
@@ -341,6 +347,8 @@ The canonical contract is published via OpenAPI:
 - Audit logging for sensitive state changes
 - Secrets are never committed; use env vars / AWS Secrets Manager / SSM Parameter Store
 - Bedrock runtime access is controlled by ECS task role IAM plus repo-managed enable/disable scripts
+- AI controller has explicit method-level RBAC (`USER`/`TRIAGE`/`ADMIN`)
+- Actuator hardening: only health is public; detail-rich actuator endpoints require `ADMIN`
 
 ---
 
@@ -378,6 +386,7 @@ GitHub Actions workflows (in `.github/workflows/`) typically include:
 - **Terraform (IaC):** `fmt/validate/plan` on infra PRs, controlled `apply` on `main` (OIDC, no static AWS keys)
 - **Frontend:** install → lint → type-check → build → Playwright E2E
 - **Backend:** test → build JAR → Docker build (dry run in CI workflow)
+- **Backend security checks:** Gitleaks (secret scanning), Semgrep (SAST), Trivy (image vulnerability scan)
 - **Image publishing:** push images to ECR on `main` via deploy workflow
 - **Deployment:** build/push images and update ECS task definitions/services (dev first)
 

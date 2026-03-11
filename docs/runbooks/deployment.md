@@ -2,7 +2,7 @@
 
 **Service**: Secure Support Hub  
 **Owner**: Engineering Team  
-**Last Updated**: 2026-03-03
+**Last Updated**: 2026-03-11
 
 ---
 
@@ -40,6 +40,8 @@ docker compose -f infra/docker-compose/docker-compose.yml up --build
 
 # 5. Verify
 curl http://localhost:8080/actuator/health
+# Metrics endpoint requires ADMIN auth token
+# curl -H "Authorization: Bearer <admin-jwt>" http://localhost:8080/actuator/prometheus
 # Open http://localhost:5173
 ```
 
@@ -156,6 +158,7 @@ Rotating the JWT secret invalidates all active user sessions.
 
 1. Generate a new secret: `openssl rand -base64 64`
 2. Update `JWT_SECRET` in the deployment environment (AWS Secrets Manager / SSM Parameter Store, or local `.env`)
+   - `JWT_SECRET` is mandatory at startup (no insecure fallback in runtime config)
 3. Restart the API ECS service or local container
 4. Inform users: all active sessions will be terminated; users must log in again
 
@@ -205,3 +208,11 @@ Recommended flow:
 2. Run a one-off `terraform apply` in `infra/terraform/envs/dev`.
 3. Confirm ECS task definition has the expected env vars.
 4. Re-add the `ignore_changes` blocks and apply again (or keep as pending local change until next infra commit).
+
+---
+
+## 8. API Docs/Actuator Exposure in Production
+
+- Production profile sets `app.docs.public=false`, so Swagger/OpenAPI endpoints are not public by default.
+- `GET /actuator/health` is public for liveness checks.
+- Other actuator endpoints (`/actuator/prometheus`, `/actuator/metrics`, etc.) require `ADMIN`.
